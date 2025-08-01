@@ -1,0 +1,45 @@
+{
+  "BasedOnProfile": "FC25PC",
+  "Name": "Madden26",
+  "DisplayName": "Madden 26 [PC]",
+  "RegistryPath": "SOFTWARE\\EA Sports\\Madden NFL 26\\",
+  "ExecutableName": "Madden26",
+  "DataVersion": 20250814,
+  "CacheName": "Madden26pc",
+  "SupportedLauncherFileTypes": null,
+  "EditorScreen": "DefaultEditor",
+  "PluginNames": [ "FC25" ],
+  "LegacyFileManager": "ChunkFileManager2022",
+  "AssetLoader": "FC25AssetLoader",
+  "AssetCompiler": "FC25AssetCompiler",
+  // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
+  "CacheWriter": "FC25CacheWriter",
+  // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
+  "CacheReader": "FC25CacheReader",
+  "TextureImporter": "FC25TextureImporter",
+  "SDKFilename": "FC25SDK",
+  "SDKAOBScan": "48 39 1D ?? ?? ?? ?? ?? ?? 48 8b 43 10",
+  "SDKClassesFile": "FIFA23.Classes.txt",
+  "SDKGeneratorClassInfoType": "SdkGenerator.FC25.ClassInfo",
+  "Tools": {
+    "Internal": [
+      {
+        "Name": "Initfs Editor",
+        "Window": "InitfsEditor"
+      }
+    ],
+    "External": []
+  },
+  "CanImportMeshes": true,
+  "CanExportMeshes": true,
+  "EBXReader": "EbxReader22B",
+  "EBXWriter": "EbxWriterRiff",
+  "CanLaunchMods": true,
+  "MaxBufferSize": 262144,
+  "Sources": [
+    {
+      "Path": "Data",
+      "SubDirs": false
+    }
+  ]
+}
