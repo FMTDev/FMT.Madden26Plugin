@@ -3,29 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-
-	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
-
-	  <!-- Nuget packaging -->
-	  <!-- Do NOT package on Build, only package on Pack -->
-	  <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-	  <!-- Allow to be packaged on Pack -->
-	  <IsPackable>true</IsPackable>
-	  <PackageVersion>$([System.DateTime]::Now.ToString("yyyy.MM.dd.HHmm"))</PackageVersion>
-	  <PackageReadmeFile>README.md</PackageReadmeFile>
-
-	  <PackageId>FMT.Hash</PackageId>
-	  <Title>FMT.Hash</Title>
-	  <Authors>Paulov / FMTDev</Authors>
-	  <Company>Paulov / FMTDev</Company>
-	  <Copyright>Paulov / FMTDev / FMT 2019-2025</Copyright>
-	  <Description>A package designed for Frostbite Modding Tool. Useful for plugins and other tooling.</Description>
-	  <PackageProjectUrl>https://github.com/FMTDev/FMT.Releases</PackageProjectUrl>
-	  <RepositoryUrl>https://github.com/FMTDev/FMT.Releases</RepositoryUrl>
-	  <PackageTags>fmt; frostbite modding tool;</PackageTags>
-	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-	  <PackageIcon>FMTIcon24.png</PackageIcon>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -49,9 +27,13 @@
     </None>
     <None Update="Madden26Cover.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<PackagePath>\</PackagePath>
+		<Pack>True</Pack>
     </None>
     <None Update="Madden26PCProfile.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<PackagePath>\</PackagePath>
+		<Pack>True</Pack>
     </None>
   </ItemGroup>
 
