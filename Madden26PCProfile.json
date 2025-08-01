@@ -8,7 +8,7 @@
   "CacheName": "Madden26pc",
   "SupportedLauncherFileTypes": null,
   "EditorScreen": "DefaultEditor",
-  "PluginNames": [ "FC25" ],
+  "PluginNames": [ "FC25", "Madden26" ],
   "LegacyFileManager": "ChunkFileManager2022",
   "AssetLoader": "FC25AssetLoader",
   "AssetCompiler": "FC25AssetCompiler",
@@ -30,16 +30,17 @@
     ],
     "External": []
   },
-  "CanImportMeshes": true,
-  "CanExportMeshes": true,
+  "CanImportMeshes": false,
+  "CanExportMeshes": false,
   "EBXReader": "EbxReader22B",
   "EBXWriter": "EbxWriterRiff",
-  "CanLaunchMods": true,
+  "CanLaunchMods": false,
   "MaxBufferSize": 262144,
   "Sources": [
     {
       "Path": "Data",
       "SubDirs": false
     }
-  ]
+  ],
+  "UseChunksInBundles": true
 }
