@@ -17,8 +17,8 @@
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
   "CacheReader": "FC25CacheReader",
   "TextureImporter": "FC25TextureImporter",
-  "SDKFilename": "FC25SDK",
-  "SDKAOBScan": "48 39 1D ?? ?? ?? ?? ?? ?? 48 8b 43 10",
+  "SDKFilename": "Madden26SDK",
+  "SDKAOBScan": null,
   "SDKClassesFile": "FIFA23.Classes.txt",
   "SDKGeneratorClassInfoType": "SdkGenerator.FC25.ClassInfo",
   "Tools": {
@@ -43,5 +43,6 @@
     }
   ],
   "UseChunksInBundles": true,
-  "IconName": "Madden26Cover.jpg"
+  "IconName": "Madden26Cover.jpg",
+  "SDKGeneratesUsingExeStringDump": true
 }
