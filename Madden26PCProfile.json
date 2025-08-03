@@ -42,5 +42,6 @@
       "SubDirs": false
     }
   ],
-  "UseChunksInBundles": true
+  "UseChunksInBundles": true,
+  "IconName": "Madden26Cover.jpg"
 }
