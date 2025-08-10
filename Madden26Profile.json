@@ -32,7 +32,7 @@
   },
   "CanImportMeshes": false,
   "CanExportMeshes": false,
-  "EBXReader": "EbxReader22B",
+  "EBXReader": "EbxReaderRiffByDescriptors",
   "EBXWriter": "EbxWriterRiff",
   "CanLaunchMods": false,
   "MaxBufferSize": 262144,

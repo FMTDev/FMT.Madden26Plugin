@@ -30,7 +30,7 @@
 		<PackagePath>\</PackagePath>
 		<Pack>True</Pack>
     </None>
-    <None Update="Madden26PCProfile.json">
+    <None Update="Madden26Profile.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		<PackagePath>\</PackagePath>
 		<Pack>True</Pack>
