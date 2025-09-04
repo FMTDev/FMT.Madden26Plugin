@@ -8,19 +8,17 @@
   "CacheName": "Madden26pc",
   "SupportedLauncherFileTypes": null,
   "EditorScreen": "DefaultEditor",
-  "PluginNames": [ "FC25", "Madden26" ],
+  "PluginNames": [ "Madden26" ],
   "LegacyFileManager": "ChunkFileManager2022",
-  "AssetLoader": "FC25AssetLoader",
-  "AssetCompiler": "FC25AssetCompiler",
+  "AssetLoader": "Madden26AssetLoader",
+  "AssetCompiler": "Frostbite2022AssetCompiler",
   // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
-  "CacheWriter": "FC25CacheWriter",
+  "CacheWriter": "Madden26CacheWriter",
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
-  "CacheReader": "FC25CacheReader",
+  "CacheReader": "Madden26CacheReader",
   "TextureImporter": "FC25TextureImporter",
   "SDKFilename": "Madden26SDK",
   "SDKAOBScan": null,
-  "SDKClassesFile": "FIFA23.Classes.txt",
-  "SDKGeneratorClassInfoType": "SdkGenerator.FC25.ClassInfo",
   "Tools": {
     "Internal": [
       {
@@ -31,7 +29,7 @@
     "External": []
   },
   "CanImportMeshes": false,
-  "CanExportMeshes": false,
+  "CanExportMeshes": true,
   "EBXReader": "EbxReaderRiffByDescriptors",
   "EBXWriter": "EbxWriterRiff",
   "CanLaunchMods": false,

@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FMT.Core" Version="2025.9.3.1923" />
+    <PackageReference Include="FMT.FileTools" Version="2025.8.30.15001" />
+    <PackageReference Include="FMT.PluginInterfaces" Version="2025.9.1.20371" />
+    <PackageReference Include="FMT.ServicesManagers" Version="2025.9.2.22001" />
     <PackageReference Include="HashDepot" Version="3.1.0" />
   </ItemGroup>
 
