@@ -5,6 +5,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
+using System.Text;
 
 namespace Madden26Plugin.Cache
 {
@@ -41,7 +42,6 @@ namespace Madden26Plugin.Cache
             if (!File.Exists(madden26CacheHelpers.GetCachePath()))
                 return false;
 
-            bool patched = false;
             using (NativeReader nativeReader = new NativeReader(new FileStream(madden26CacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
                 if (nativeReader.ReadLengthPrefixedString() != "madden26")
@@ -49,7 +49,7 @@ namespace Madden26Plugin.Cache
 
                 var cacheHead = nativeReader.ReadULong();
                 if (cacheHead != madden26CacheHelpers.GetSystemIteration())
-                    patched = true;
+                    return false;
 
                 logger.Log("Cache: Reading bundles");
                 int count = 0;
@@ -57,12 +57,21 @@ namespace Madden26Plugin.Cache
                 count = nativeReader.ReadInt();
                 for (int k = 0; k < count; k++)
                 {
+                    if (k % 100 == 0)
+                    {
+                        var pct = (int)Math.Round(((double)k / count) * 100);
+                        logger.LogProgress(pct);
+                        logger.Log($"Cache: Reading bundles [{pct}%]");
+                    }
+
                     BundleEntry bE = new();
-                    bE.Name = nativeReader.ReadLengthPrefixedString();
+                    var nameLength = nativeReader.ReadUShort();
+                    bE.Name = Encoding.UTF8.GetString(nativeReader.ReadBytes(nameLength));
                     bE.SuperBundleId = nativeReader.ReadInt();
 
-                    if (assetManagementService != null)
+                    if (assetManagementService != null)// && assetManagementService.Bundles.FindIndex(x => Fnv1.HashString(x.Name) == Fnv1.HashString(bE.Name)) == -1)
                         assetManagementService.Bundles.Add(bE);
+
                 }
 
                 logger.Log("Cache: Reading Ebx");
@@ -76,7 +85,7 @@ namespace Madden26Plugin.Cache
 
                     var asset = ReadEbxAssetEntry(nativeReader);
 
-                    if (assetManagementService != null)
+                    if (assetManagementService != null && assetManagementService.GetEbxEntry(asset.Name) == null)
                         assetManagementService.AddEbx(asset as EbxAssetEntry);
 
                 }
@@ -129,7 +138,7 @@ namespace Madden26Plugin.Cache
                         assetManagementService.AddChunk(chunkAssetEntry as ChunkAssetEntry);
                 }
             }
-            return !patched;
+            return true;
         }
 
         public virtual IEbxAssetEntry ReadEbxAssetEntry(NativeReader nativeReader)
@@ -140,7 +149,7 @@ namespace Madden26Plugin.Cache
             ebxAssetEntry.BaseSha1 = ebxAssetEntry.Sha1;
             ebxAssetEntry.Size = nativeReader.ReadLong();
             ebxAssetEntry.OriginalSize = nativeReader.ReadLong();
-            ebxAssetEntry.Location = (AssetDataLocation)nativeReader.ReadInt();
+            ebxAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
             ebxAssetEntry.Type = nativeReader.ReadLengthPrefixedString();
             ebxAssetEntry.Id = nativeReader.ReadGuid();
             if (nativeReader.ReadBoolean())
@@ -151,14 +160,6 @@ namespace Madden26Plugin.Cache
                 ebxAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
                 ebxAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
             }
-
-            if (nativeReader.ReadBoolean())
-                ebxAssetEntry.TOCFileLocation = nativeReader.ReadLengthPrefixedString();
-
-            ebxAssetEntry.SB_CAS_Offset_Position = nativeReader.ReadInt();
-            ebxAssetEntry.SB_CAS_Size_Position = nativeReader.ReadInt();
-            ebxAssetEntry.SB_Sha1_Position = nativeReader.ReadInt();
-            ebxAssetEntry.SB_OriginalSize_Position = nativeReader.ReadInt();
 
             int bundleCount = nativeReader.ReadInt();
             for (int bundleIndex = 0; bundleIndex < bundleCount; bundleIndex++)
@@ -177,7 +178,7 @@ namespace Madden26Plugin.Cache
             resAssetEntry.BaseSha1 = resAssetEntry.Sha1;
             resAssetEntry.Size = nativeReader.ReadLong();
             resAssetEntry.OriginalSize = nativeReader.ReadLong();
-            resAssetEntry.Location = (AssetDataLocation)nativeReader.ReadInt();
+            resAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
             resAssetEntry.IsInline = nativeReader.ReadBoolean();
             resAssetEntry.ResRid = nativeReader.ReadULong();
             resAssetEntry.ResType = nativeReader.ReadUInt();
@@ -190,14 +191,6 @@ namespace Madden26Plugin.Cache
                 resAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
                 resAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
             }
-
-            if (nativeReader.ReadBoolean())
-                resAssetEntry.TOCFileLocation = nativeReader.ReadLengthPrefixedString();
-
-            resAssetEntry.SB_CAS_Offset_Position = nativeReader.ReadInt();
-            resAssetEntry.SB_CAS_Size_Position = nativeReader.ReadInt();
-            resAssetEntry.SB_Sha1_Position = nativeReader.ReadInt();
-            resAssetEntry.SB_OriginalSize_Position = nativeReader.ReadInt();
 
             int bundleCount = nativeReader.ReadInt();
             for (int bundleIndex = 0; bundleIndex < bundleCount; bundleIndex++)
@@ -215,7 +208,7 @@ namespace Madden26Plugin.Cache
             chunkAssetEntry.Sha1 = nativeReader.ReadSha1();
             chunkAssetEntry.BaseSha1 = chunkAssetEntry.Sha1;
             chunkAssetEntry.Size = nativeReader.ReadLong();
-            chunkAssetEntry.Location = (AssetDataLocation)nativeReader.ReadInt();
+            chunkAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
             chunkAssetEntry.IsInline = nativeReader.ReadBoolean();
             chunkAssetEntry.BundledSize = nativeReader.ReadUInt();
             chunkAssetEntry.RangeStart = nativeReader.ReadUInt();
@@ -233,17 +226,6 @@ namespace Madden26Plugin.Cache
                 chunkAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
                 chunkAssetEntry.Location = AssetDataLocation.CasNonIndexed;
             }
-
-            if (nativeReader.ReadBoolean())
-                chunkAssetEntry.TOCFileLocation = nativeReader.ReadLengthPrefixedString();
-
-            chunkAssetEntry.SB_CAS_Offset_Position = nativeReader.ReadInt();
-            chunkAssetEntry.SB_CAS_Size_Position = nativeReader.ReadInt();
-            chunkAssetEntry.SB_Sha1_Position = nativeReader.ReadInt();
-            chunkAssetEntry.SB_OriginalSize_Position = nativeReader.ReadInt();
-
-            chunkAssetEntry.SB_LogicalOffset_Position = nativeReader.ReadUInt();
-            chunkAssetEntry.SB_LogicalSize_Position = nativeReader.ReadUInt();
 
             int bundleCount = nativeReader.ReadInt();
             for (int i = 0; i < bundleCount; i++)

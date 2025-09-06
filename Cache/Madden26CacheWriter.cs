@@ -5,6 +5,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
+using System.Text;
 
 namespace Madden26Plugin.Cache
 {
@@ -32,7 +33,8 @@ namespace Madden26Plugin.Cache
                 nativeWriter.Write(assetManagementService.Bundles.Count);
                 foreach (BundleEntry bundle in assetManagementService.Bundles)
                 {
-                    nativeWriter.WriteLengthPrefixedString(bundle.Name);
+                    nativeWriter.WriteUInt16((ushort)bundle.Name.Length, Endian.Little);
+                    nativeWriter.WriteBytes(Encoding.UTF8.GetBytes(bundle.Name));
                     nativeWriter.Write(bundle.SuperBundleId);
                 }
 
@@ -86,7 +88,7 @@ namespace Madden26Plugin.Cache
             nativeWriter.Write(ebxEntry.Sha1);
             nativeWriter.Write(ebxEntry.Size);
             nativeWriter.Write(ebxEntry.OriginalSize);
-            nativeWriter.Write((int)ebxEntry.Location);
+            nativeWriter.Write((byte)ebxEntry.Location);
             nativeWriter.WriteLengthPrefixedString((ebxEntry.Type != null) ? ebxEntry.Type : "");
             nativeWriter.Write(ebxEntry.Id);
 
@@ -98,15 +100,6 @@ namespace Madden26Plugin.Cache
                 nativeWriter.Write(ebxEntry.ExtraData.Cas.Value);
                 nativeWriter.Write(ebxEntry.ExtraData.IsPatch);
             }
-
-            nativeWriter.Write(!string.IsNullOrEmpty(ebxEntry.TOCFileLocation));
-            if (!string.IsNullOrEmpty(ebxEntry.TOCFileLocation))
-                nativeWriter.WriteLengthPrefixedString(ebxEntry.TOCFileLocation);
-
-            nativeWriter.Write(ebxEntry.SB_CAS_Offset_Position);
-            nativeWriter.Write(ebxEntry.SB_CAS_Size_Position);
-            nativeWriter.Write(ebxEntry.SB_Sha1_Position);
-            nativeWriter.Write(ebxEntry.SB_OriginalSize_Position);
 
             nativeWriter.Write(ebxEntry.Bundles.Count);
             foreach (int bundle2 in ebxEntry.Bundles)
@@ -121,7 +114,7 @@ namespace Madden26Plugin.Cache
             nativeWriter.Write(resEntry.Sha1);
             nativeWriter.Write(resEntry.Size);
             nativeWriter.Write(resEntry.OriginalSize);
-            nativeWriter.Write((int)resEntry.Location);
+            nativeWriter.Write((byte)resEntry.Location);
             nativeWriter.Write(resEntry.IsInline);
             nativeWriter.Write(resEntry.ResRid);
             nativeWriter.Write(resEntry.ResType);
@@ -136,15 +129,6 @@ namespace Madden26Plugin.Cache
                 nativeWriter.Write(resEntry.ExtraData.Cas.Value);
                 nativeWriter.Write(resEntry.ExtraData.IsPatch);
             }
-
-            nativeWriter.Write(!string.IsNullOrEmpty(resEntry.TOCFileLocation));
-            if (!string.IsNullOrEmpty(resEntry.TOCFileLocation))
-                nativeWriter.WriteLengthPrefixedString(resEntry.TOCFileLocation);
-
-            nativeWriter.Write(resEntry.SB_CAS_Offset_Position);
-            nativeWriter.Write(resEntry.SB_CAS_Size_Position);
-            nativeWriter.Write(resEntry.SB_Sha1_Position);
-            nativeWriter.Write(resEntry.SB_OriginalSize_Position);
 
             nativeWriter.Write(resEntry.Bundles.Count);
             foreach (int b in resEntry.Bundles)
@@ -161,7 +145,7 @@ namespace Madden26Plugin.Cache
             nativeWriter.Write(chunkEntry.Id);
             nativeWriter.Write(chunkEntry.Sha1);
             nativeWriter.Write(chunkEntry.Size);
-            nativeWriter.Write((int)chunkEntry.Location);
+            nativeWriter.Write((byte)chunkEntry.Location);
             nativeWriter.Write(chunkEntry.IsInline);
             nativeWriter.Write(chunkEntry.BundledSize);
             nativeWriter.Write(chunkEntry.RangeStart);
@@ -179,18 +163,6 @@ namespace Madden26Plugin.Cache
                 nativeWriter.Write(chunkEntry.ExtraData.Cas.Value);
                 nativeWriter.Write(chunkEntry.ExtraData.IsPatch);
             }
-
-            nativeWriter.Write(!string.IsNullOrEmpty(chunkEntry.TOCFileLocation));
-            if (!string.IsNullOrEmpty(chunkEntry.TOCFileLocation))
-                nativeWriter.WriteLengthPrefixedString(chunkEntry.TOCFileLocation);
-
-            nativeWriter.Write(chunkEntry.SB_CAS_Offset_Position);
-            nativeWriter.Write(chunkEntry.SB_CAS_Size_Position);
-            nativeWriter.Write(chunkEntry.SB_Sha1_Position);
-            nativeWriter.Write(chunkEntry.SB_OriginalSize_Position);
-
-            nativeWriter.Write(chunkEntry.SB_LogicalOffset_Position);
-            nativeWriter.Write(chunkEntry.SB_LogicalSize_Position);
 
             nativeWriter.Write(chunkEntry.Bundles.Count);
             foreach (int bundleId in chunkEntry.Bundles)
