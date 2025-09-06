@@ -16,7 +16,7 @@
   "CacheWriter": "Madden26CacheWriter",
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
   "CacheReader": "Madden26CacheReader",
-  "TextureImporter": "FC25TextureImporter",
+  "TextureImporter": "TextureImporter",
   "SDKFilename": "Madden26SDK",
   "SDKAOBScan": null,
   "Tools": {
