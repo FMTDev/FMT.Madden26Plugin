@@ -39,8 +39,13 @@ namespace Madden26Plugin.Cache
             var assetManagementService = SingletonService.GetInstance<IAssetManagementService>();
             var madden26CacheHelpers = new Madden26CacheHelpers();
 
+            // If no cache, nothing to read
             if (!File.Exists(madden26CacheHelpers.GetCachePath()))
                 return false;
+
+            // If we already have data, no need to read again
+            if (assetManagementService.EnumerateEbx().Any())
+                return true;
 
             using (NativeReader nativeReader = new NativeReader(new FileStream(madden26CacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
@@ -50,6 +55,11 @@ namespace Madden26Plugin.Cache
                 var cacheHead = nativeReader.ReadULong();
                 if (cacheHead != madden26CacheHelpers.GetSystemIteration())
                     return false;
+
+                var exeTime = madden26CacheHelpers.GetExeWriteTime();
+                var cacheTime = nativeReader.ReadLong();
+                if (exeTime != cacheTime)
+                    return false; // Patching required, so ignore cache
 
                 logger.Log("Cache: Reading bundles");
                 int count = 0;
@@ -69,7 +79,7 @@ namespace Madden26Plugin.Cache
                     bE.Name = Encoding.UTF8.GetString(nativeReader.ReadBytes(nameLength));
                     bE.SuperBundleId = nativeReader.ReadInt();
 
-                    if (assetManagementService != null)// && assetManagementService.Bundles.FindIndex(x => Fnv1.HashString(x.Name) == Fnv1.HashString(bE.Name)) == -1)
+                    if (assetManagementService != null && !assetManagementService.Bundles.Any(x => x.SuperBundleId == bE.SuperBundleId))
                         assetManagementService.Bundles.Add(bE);
 
                 }
@@ -80,12 +90,14 @@ namespace Madden26Plugin.Cache
                 {
                     if (k % 100 == 0)
                     {
-                        logger.LogProgress((int)Math.Round(((double)k / count) * 100));
+                        var pct = (int)Math.Round(((double)k / count) * 100);
+                        logger.LogProgress(pct);
+                        logger.Log($"Cache: Reading Ebx [{pct}%]");
                     }
 
                     var asset = ReadEbxAssetEntry(nativeReader);
 
-                    if (assetManagementService != null && assetManagementService.GetEbxEntry(asset.Name) == null)
+                    if (assetManagementService != null)
                         assetManagementService.AddEbx(asset as EbxAssetEntry);
 
                 }
@@ -96,7 +108,9 @@ namespace Madden26Plugin.Cache
                 {
                     if (k % 100 == 0)
                     {
-                        logger.LogProgress((int)Math.Round(((double)k / count) * 100));
+                        var pct = (int)Math.Round(((double)k / count) * 100);
+                        logger.LogProgress(pct);
+                        logger.Log($"Cache: Reading Resources [{pct}%]");
                     }
                     var asset = ReadResAssetEntry(nativeReader);
 
@@ -112,7 +126,9 @@ namespace Madden26Plugin.Cache
                 {
                     if (chunkIndex % 100 == 0)
                     {
-                        logger.LogProgress((int)Math.Round(((double)chunkIndex / count) * 100));
+                        var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
+                        logger.LogProgress(pct);
+                        logger.Log($"Cache: Reading Chunks [{pct}%]");
                     }
 
                     var asset = ReadChunkAssetEntry(nativeReader);
@@ -129,7 +145,9 @@ namespace Madden26Plugin.Cache
                 {
                     if (chunkIndex % 100 == 0)
                     {
-                        logger.LogProgress((int)Math.Round(((double)chunkIndex / count) * 100));
+                        var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
+                        logger.LogProgress(pct);
+                        logger.Log($"Cache: Reading Chunks [{pct}%]");
                     }
                     var chunkAssetEntry = ReadChunkAssetEntry(nativeReader);
                     chunkAssetEntry.IsTocChunk = true;

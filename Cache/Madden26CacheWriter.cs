@@ -19,16 +19,20 @@ namespace Madden26Plugin.Cache
             Madden26CacheHelpers cacheHelpers = new();
             var assetManagementService = SingletonService.GetInstance<IAssetManagementService>();
 
+            var fs = SingletonService.GetInstance<IFileSystemService>();
+
             if (File.Exists(cacheHelpers.GetCachePath()))
                 File.Delete(cacheHelpers.GetCachePath());
 
             MemoryStream msCache = new();
 
-            //using (NativeWriter nativeWriter = new NativeWriter(new FileStream(fs.CacheName + ".cache", FileMode.Create)))
             using (NativeWriter nativeWriter = new(msCache, leaveOpen: true))
             {
                 nativeWriter.WriteLengthPrefixedString("madden26");
+
                 nativeWriter.Write(cacheHelpers.GetSystemIteration());
+
+                nativeWriter.Write(cacheHelpers.GetExeWriteTime());
 
                 nativeWriter.Write(assetManagementService.Bundles.Count);
                 foreach (BundleEntry bundle in assetManagementService.Bundles)

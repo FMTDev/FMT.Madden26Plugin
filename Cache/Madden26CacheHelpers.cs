@@ -47,5 +47,16 @@ namespace Madden26Plugin.Cache
 
             return baseNum + headNum;
         }
+
+        public long GetExeWriteTime()
+        {
+            var fss = SingletonService.GetInstance<IFileSystemService>();
+            var exePath = Path.Combine(fss.BasePath, "Madden26.exe");
+            if (File.Exists(exePath))
+            {
+                return File.GetLastWriteTimeUtc(exePath).ToFileTimeUtc();
+            }
+            return 0;
+        }
     }
 }
