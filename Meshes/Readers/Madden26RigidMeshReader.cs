@@ -1,4 +1,5 @@
-﻿using FMT.FileTools;
+﻿using FMT.Core.Meshes;
+using FMT.FileTools;
 using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Meshes;
 
@@ -11,6 +12,7 @@ namespace Madden26Plugin.Meshes.Readers
         public void Read(NativeReader nativeReader, IMeshSet meshSet)
         {
             nativeReader.Position = 0;
+            meshSet.UnknownBytes.Clear();
 
             new Madden26MeshHeaderReader().Read(nativeReader, meshSet);
             meshSet.BoundingBox = nativeReader.ReadAxisAlignedBox();
@@ -24,34 +26,22 @@ namespace Madden26Plugin.Meshes.Readers
             long offsetNameShort = nativeReader.ReadLong();
             meshSet.nameHash = nativeReader.ReadUInt();
             meshSet.Type = (MeshType)nativeReader.ReadByte();
-            meshSet.FIFA23_Type2 = (MeshType)nativeReader.ReadByte();
-            meshSet.UnknownBytes.Add(nativeReader.ReadBytes(10));
-
-            for (int n = 0; n < MaxLodCount * 2; n++)
+            meshSet.UnknownBytes.Add(nativeReader.ReadBytes(11));
+            for (int j = 0; j < MaxLodCount * 2; j++)
             {
                 meshSet.LodFade.Add(nativeReader.ReadUInt16LittleEndian());
             }
-            meshSet.MeshLayout = (EMeshLayout)nativeReader.ReadByte();
-            nativeReader.Position -= 1;
-            var meshLayoutFlags = (MeshSetLayoutFlags)nativeReader.ReadByte();
-            meshSet.unknownUInts.Add(nativeReader.ReadUInt());
-            meshSet.unknownUInts.Add(nativeReader.ReadUInt());
-            nativeReader.Position -= 1;
+            meshSet.MeshSetLayoutFlags = (MeshSetLayoutFlags)nativeReader.ReadUInt64();
             meshSet.ShaderDrawOrder = (ShaderDrawOrder)nativeReader.ReadByte();
             meshSet.ShaderDrawOrderUserSlot = (ShaderDrawOrderUserSlot)nativeReader.ReadByte();
             meshSet.ShaderDrawOrderSubOrder = (ShaderDrawOrderSubOrder)nativeReader.ReadUShort();
-            var LodCount = nativeReader.ReadUShort();
-            //meshSet.LodCount = nativeReader.ReadUShort();
+            var unk1 = nativeReader.ReadUInt16();
+            ((MeshSet)meshSet).LodCount = nativeReader.ReadUInt16();
             meshSet.MeshCount = nativeReader.ReadUShort();
-
-            //for (var iL = 0; iL < LodCount; iL++)
-            //{
-            //    meshSet.PositionsOfLodMeshSet.Add(nativeReader.ReadUShort());
-            //}
-            meshSet.UnknownBytes.Add(nativeReader.ReadBytes(10));
+            meshSet.UnknownBytes.Add(nativeReader.ReadBytes(14));
 
             var sectionIndex = 0;
-            for (int iL = 0; iL < LodCount; iL++)
+            for (int iL = 0; iL < ((MeshSet)meshSet).LodCount; iL++)
             {
                 if (lodOffsets[iL] == 0)
                     continue;

@@ -11,7 +11,7 @@
   "PluginNames": [ "Madden26" ],
   "LegacyFileManager": "ChunkFileManager2022",
   "AssetLoader": "Madden26AssetLoader",
-  "AssetCompiler": "Frostbite2022AssetCompiler",
+  "AssetCompiler": "Madden26AssetCompiler",
   // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
   "CacheWriter": "Madden26CacheWriter",
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
@@ -32,7 +32,7 @@
   "CanExportMeshes": true,
   "EBXReader": "EbxReaderRiffByDescriptors",
   "EBXWriter": "EbxWriterRiff",
-  "CanLaunchMods": false,
+  "CanLaunchMods": true,
   "MaxBufferSize": 262144,
   "Sources": [
     {
@@ -42,5 +42,7 @@
   ],
   "UseChunksInBundles": true,
   "IconName": "Madden26Cover.jpg",
-  "SDKGeneratesUsingExeStringDump": true
+  "SDKGeneratesUsingExeStringDump": true,
+  "CanUseModData": false,
+  "ForceUseModData": false,
 }
