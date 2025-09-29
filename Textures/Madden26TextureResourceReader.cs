@@ -17,7 +17,7 @@ namespace Madden26Plugin.Textures
             var msCopy = new MemoryStream();
             nativeReader.BaseStream.CopyTo(msCopy);
             nativeReader.Position = 0;
-            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture.bin", msCopy.ToArray(), "Texture/FC26/Read", false);
+            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture.bin", msCopy.ToArray(), "Texture/Madden26/Read", false);
 #endif
 
             texture.MipOffsets[0] = nativeReader.ReadUInt();

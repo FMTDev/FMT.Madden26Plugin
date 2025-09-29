@@ -37,7 +37,7 @@ namespace Madden26Plugin.Textures
 
             var arrayOfBytes = memoryStream.ToArray();
 #if DEBUG
-            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture_Write.bin", arrayOfBytes, "Texture/FC26/Write");
+            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture_Write.bin", arrayOfBytes, "Texture/Madden26/Write");
 #endif
 
             return arrayOfBytes;
