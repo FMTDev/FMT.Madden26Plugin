@@ -33,7 +33,7 @@
   "EBXReader": "EbxReaderRiffByDescriptors",
   "EBXWriter": "EbxWriterRiff",
   "CanLaunchMods": true,
-  "MaxBufferSize": 262144,
+  "MaxBufferSize": 65536,
   "Sources": [
     {
       "Path": "Data",
@@ -44,5 +44,5 @@
   "IconName": "Madden26Cover.jpg",
   "SDKGeneratesUsingExeStringDump": true,
   "CanUseModData": false,
-  "ForceUseModData": false,
+  "ForceUseModData": false
 }
