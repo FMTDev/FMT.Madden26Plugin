@@ -3,6 +3,7 @@ using FMT.Logging;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
+using FMT.ProfileSystem;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 using System.Text;
@@ -28,7 +29,7 @@ namespace Madden26Plugin.Cache
 
             using (NativeWriter nativeWriter = new(msCache, leaveOpen: true))
             {
-                nativeWriter.WriteLengthPrefixedString("madden26");
+                nativeWriter.WriteLengthPrefixedString(ProfileManager.Instance.Name);
 
                 nativeWriter.Write(cacheHelpers.GetSystemIteration());
 
