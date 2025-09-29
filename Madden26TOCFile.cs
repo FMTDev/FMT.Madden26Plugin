@@ -62,7 +62,7 @@ namespace Madden26Plugin
             return (catalog, cas, isInPatch);
         }
 
-        protected override void ReadChunkData(NativeReader nativeReader)
+        public override void ReadChunkData(NativeReader nativeReader)
         {
             if (MetaData.ChunkCount == 0)
                 return;
