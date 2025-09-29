@@ -3,6 +3,7 @@ using FMT.Logging;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
+using FMT.ProfileSystem;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 using System.Text;
@@ -49,7 +50,7 @@ namespace Madden26Plugin.Cache
 
             using (NativeReader nativeReader = new NativeReader(new FileStream(madden26CacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
-                if (nativeReader.ReadLengthPrefixedString() != "madden26")
+                if (nativeReader.ReadLengthPrefixedString() != ProfileManager.Instance.Name)
                     return false;
 
                 var cacheHead = nativeReader.ReadULong();
@@ -252,6 +253,36 @@ namespace Madden26Plugin.Cache
             }
 
             return chunkAssetEntry;
+        }
+
+        public bool DoesCacheNeedRebuilding(ILogger logger)
+        {
+            var cacheHelpers = new Madden26CacheHelpers();
+
+            if (!File.Exists(cacheHelpers.GetCachePath()))
+                return true; // file doesn't exist, rebuild required
+
+            using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
+            {
+                if (nativeReader.ReadLengthPrefixedString() != ProfileManager.Instance.Name)
+                    return true; // rebuild required
+
+                var cacheHead = nativeReader.ReadULong();
+                if (cacheHead != cacheHelpers.GetSystemIteration())
+                    return true; // rebuild required
+
+                var exeTime = cacheHelpers.GetExeWriteTime();
+                var cacheTime = nativeReader.ReadLong();
+                if (exeTime != cacheTime)
+                    return true;  // rebuild required
+
+                //var installTime = cacheHelpers.GetInstallWriteTime();
+                //var cachedInstallTime = nativeReader.ReadLong();
+                //if (installTime != cachedInstallTime)
+                //    return true; // rebuild required
+            }
+
+            return false; // rebuild NOT required
         }
     }
 }
