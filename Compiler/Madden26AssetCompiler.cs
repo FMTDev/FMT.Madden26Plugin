@@ -1,9 +1,11 @@
 ﻿using FMT.Compilers;
+using FMT.Core;
 using FMT.Core.Models.TOC;
 using FMT.Core.Writers;
 using FMT.Db;
 using FMT.Ebx;
 using FMT.FileTools;
+using FMT.Hash;
 using FMT.Logging;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
@@ -16,7 +18,6 @@ using System.Runtime.InteropServices;
 
 namespace Madden26Plugin.Compiler
 {
-    //public class Madden26AssetCompiler : FrostbiteNullCompiler, IAssetCompiler
     public class Madden26AssetCompiler : FrostbiteNullCompiler, IAssetCompiler
     {
         private IFileSystemService fss => SingletonService.GetInstance<IFileSystemService>();
@@ -429,6 +430,7 @@ namespace Madden26Plugin.Compiler
                         tOCFileWriter.Write(tocFile, false);
                     }
 
+
                     if (true)
                     {
 
@@ -436,7 +438,180 @@ namespace Madden26Plugin.Compiler
                 }
             }
 
+
+            ModifyTOCChunks(modExecutor);
+
             return true;
+        }
+
+        List<Guid> ModifyTOCChunks(IModExecutor modExecutor)
+        {
+            var fss = SingletonService.GetInstance<IFileSystemService>();
+
+            List<Guid> result = new();
+
+            if (!modExecutor.ModifiedChunks.Any())
+                return result;
+
+            try
+            {
+
+                int sbIndex = -1;
+                foreach (string sbKey in fss.SuperBundles)
+                {
+                    sbIndex++;
+                    string tocFileSbKey = sbKey;
+
+                    var pathToTOCFileRAW = $"native_data/{tocFileSbKey}.toc";
+
+                    var pathToTOCFile = fss.ResolvePath(pathToTOCFileRAW, modExecutor.UseModData && UseModDirectory, modDirectory: ModDirectory);
+
+                    if (string.IsNullOrEmpty(pathToTOCFile))
+                        continue;
+
+                    var tocFileObj = Activator.CreateInstance(fss.TOCFileType, pathToTOCFileRAW, false, false, modExecutor.UseModData && UseModDirectory, sbIndex, true) as TOCFile;
+
+                    // read the changed toc file in ModData
+                    if (!tocFileObj.TocChunks.Any())
+                        continue;
+
+                    if (!tocFileObj.TocChunks.Any(x => x != null && modExecutor.ModifiedChunks.ContainsKey(x.Id)))
+                        continue;
+
+                    if (!modExecutor.ModifiedChunks.Any(x =>
+                        x.Value.Bundles.Contains(tocFileObj.ChunkDataBundleId)
+                        || x.Value.Bundles.Contains(tocFileObj.ChunkDataBundleId_PreFMT2323)
+                        || x.Value.Bundles.Contains(Fnv1a.HashStringUTF8("TocChunks"))
+                        || x.Value.Bundles.Contains(Fnv1a.HashStringByHashDepot("TocChunks"))
+                        )
+                        )
+                        continue;
+
+                    ProcessModifiedTOCChunksIntoTOCFile(result, pathToTOCFileRAW, pathToTOCFile, tocFileObj, modExecutor);
+                    TOCFile.RebuildTOCSignatureOnly(pathToTOCFile);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            return result;
+        }
+
+        private void ProcessModifiedTOCChunksIntoTOCFile(List<Guid> result, string pathToTOCFileRAW, string pathToTOCFile, TOCFile tocFileObj, IModExecutor modExecutor)
+        {
+            var fss = SingletonService.GetInstance<IFileSystemService>();
+
+            var tocChunks = tocFileObj.TocChunks.Where(x => x != null && x.ExtraData != null);
+
+            FileLogger.WriteLine($"ModifyTOCChunks: Found Changes to {pathToTOCFileRAW}");
+
+            using (NativeWriter nw_toc = new(new FileStream(pathToTOCFile, FileMode.Open)))
+            {
+                Dictionary<string, HashSet<IChunkAssetEntry>> CasPathsToChunks = new();
+                foreach (var modChunk in modExecutor.ModifiedChunks)
+                {
+                    if (tocFileObj.TocChunkGuids.Contains(modChunk.Key))
+                    {
+                        var chunkIndex = tocFileObj.TocChunks.FindIndex(x =>
+                            x != null &&
+                            x.Id == modChunk.Key
+                            && modChunk.Value.ModifiedEntry != null
+                            );
+                        if (chunkIndex != -1)
+                        {
+                            var chunk = tocFileObj.TocChunks[chunkIndex];
+
+                            var catalog = chunk.ExtraData.Catalog.Value;
+                            var cas = chunk.ExtraData.Cas.Value;
+                            var patch = chunk.ExtraData.IsPatch;
+                            var casPath = fss.ResolvePath(fss.GetFilePath(catalog, cas, patch), modExecutor.UseModData && UseModDirectory, modDirectory: ModDirectory);
+
+                            if (!CasPathsToChunks.ContainsKey(casPath))
+                                CasPathsToChunks.Add(casPath, new HashSet<IChunkAssetEntry>());
+
+                            modChunk.Value.SB_CAS_Size_Position = chunk.SB_CAS_Size_Position;
+                            modChunk.Value.SB_CAS_Offset_Position = chunk.SB_CAS_Offset_Position;
+                            CasPathsToChunks[casPath].Add(modChunk.Value);
+                        }
+                    }
+                }
+
+
+                //foreach (var casPathToChunks in CasPathsToChunks)
+                //{
+                //    using (NativeWriter nw_cas = new(new FileStream(casPathToChunks.Key, FileMode.OpenOrCreate)))
+                //    {
+                //        foreach (var modChunk in casPathToChunks.Value)
+                //        {
+                //            byte[] data = null;
+
+                //            if (modChunk.ModifiedEntry != null && modChunk.ModifiedEntry.Data != null)
+                //                data = modChunk.ModifiedEntry.Data;
+
+                //            if (data == null)
+                //                continue;
+
+                //            var chunkGuid = modChunk.Id;
+                //            if (ProcessedChunks.Contains(chunkGuid))
+                //                continue;
+
+                //            bool usedModdedFileData = false;
+                //            // If we have a modified CasBundle entry using the same CAS, we should use that offset instead of appending to the end of the CAS
+                //            if (ModdedFiles.Any(x => x.NamePath.ToString().Equals(modChunk.Id.ToString())))
+                //            {
+                //                var moddedFileIndex = ModdedFiles.FindIndex(x => x.NamePath.ToString().Equals(modChunk.Id.ToString()));
+                //                ModdedFile? moddedFile = null;
+                //                if (moddedFileIndex != -1)
+                //                    moddedFile = ModdedFiles[moddedFileIndex];
+
+                //                var moddedFileCasPath = moddedFile.HasValue ? fss.ResolvePath(fss.GetFilePath((int)moddedFile.Value.ExtraData.Catalog, (int)moddedFile.Value.ExtraData.Cas, moddedFile.Value.ExtraData.IsPatch), ModExecutor.UseModData && UseModDirectory, modDirectory: ModDirectory) : "";
+
+                //                if (moddedFile.HasValue
+                //                    && casPathToChunks.Key == moddedFileCasPath)
+                //                {
+                //                    modChunk.ExtraData = new AssetExtraData()
+                //                    {
+                //                        DataOffset = (uint)ModdedFiles[moddedFileIndex].ExtraData.DataOffset,
+                //                    };
+                //                    usedModdedFileData = true;
+                //                }
+                //            }
+
+
+                //            if (!usedModdedFileData)
+                //            {
+                //                nw_cas.Position = nw_cas.Length;
+                //                modChunk.ExtraData = new AssetExtraData()
+                //                {
+                //                    DataOffset = (uint)nw_cas.Position,
+                //                };
+                //                nw_cas.WriteBytes(data);
+                //            }
+
+                //            modChunk.Size = data.Length;
+
+                //            if (modChunk.SB_CAS_Offset_Position == 0)
+                //                throw new InvalidOperationException($"modChunk.SB_CAS_Offset_Position cannot be 0");
+
+                //            nw_toc.Position = modChunk.SB_CAS_Offset_Position;
+
+                //            nw_toc.Write((uint)modChunk.ExtraData.DataOffset, Endian.Big);
+
+                //            if (modChunk.SB_CAS_Size_Position == 0)
+                //                throw new InvalidOperationException($"modChunk.SB_CAS_Size_Position cannot be 0");
+
+                //            nw_toc.Position = modChunk.SB_CAS_Size_Position;
+
+                //            nw_toc.Write((uint)data.Length, Endian.Big);
+                //            FileLogger.WriteLine($"Written TOC Chunk {chunkGuid} to {casPathToChunks.Key}");
+                //            result.Add(chunkGuid);
+                //            ProcessedChunks.Add(chunkGuid);
+                //        }
+                //    }
+                //}
+            }
         }
 
         public override bool PostCompile(ILogger logger, IModExecutor modExecutor)
