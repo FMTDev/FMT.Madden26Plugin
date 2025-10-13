@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Configurations>Debug;Release;FMT_PRO</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,17 +18,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FMT.Compilers" Version="2025.9.28.8211" />
+    <PackageReference Include="FMT.Compilers" Version="2025.10.13.8071" />
     <PackageReference Include="FMT.Core" Version="2025.9.29.90919" />
-    <PackageReference Include="FMT.FileTools" Version="2025.9.22.18001" />
-    <PackageReference Include="FMT.PluginInterfaces" Version="2025.9.28.8201" />
-    <PackageReference Include="FMT.ServicesManagers" Version="2025.9.29.7001" />
+    <PackageReference Include="FMT.FileTools" Version="2025.10.13.8001" />
+    <PackageReference Include="FMT.PluginInterfaces" Version="2025.10.13.8071" />
+    <PackageReference Include="FMT.ServicesManagers" Version="2025.10.13.8001" />
     <PackageReference Include="HashDepot" Version="3.1.0" />
   </ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
 		<DebugSymbols>False</DebugSymbols>
 		<DebugType>None</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='FMT_PRO'">
+	  <DebugSymbols>False</DebugSymbols>
+	  <DebugType>None</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup>

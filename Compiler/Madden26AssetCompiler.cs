@@ -44,42 +44,10 @@ namespace Madden26Plugin.Compiler
                 new FileSystemGameUpdateManager(logger).MakeGameVanilla();
             });
 
-            //modExecutor.UseModData = true;
-
-            //var fs = SingletonService.GetInstance<IFileSystemService>();
-            //var modDataPath = Path.Combine(fs.BasePath, ModDirectory);
-            //if (!Directory.Exists(modDataPath))
-            //{
-            //    modExecutor.Logger.Log("Creating ModData");
-
-            //    // create mod path
-            //    Directory.CreateDirectory(modDataPath);
-            //}
-
-
-            //// copy data across
-            //CopyToModData(logger, modExecutor);
 
             Oodle.Bind(fss.BasePath);
-            //RecompressAllDataIntoCompressMaddenExpects(logger, modExecutor);
 
             return true;
-        }
-
-        private void RecompressAllDataIntoCompressMaddenExpects(ILogger logger, IModExecutor modExecutor)
-        {
-            foreach (var entry in modExecutor.ModifiedEbx)
-            {
-                entry.Value.ModifiedEntry.Data = CompressFile(entry.Value.ModifiedEntry.Data, null);
-            }
-            foreach (var entry in modExecutor.ModifiedRes)
-            {
-                entry.Value.ModifiedEntry.Data = CompressFile(entry.Value.ModifiedEntry.Data, null);
-            }
-            foreach (var entry in modExecutor.ModifiedChunks)
-            {
-                entry.Value.ModifiedEntry.Data = CompressFile(entry.Value.ModifiedEntry.Data, null);
-            }
         }
 
         protected void CopyToModData(ILogger logger, IModExecutor modExecutor)
