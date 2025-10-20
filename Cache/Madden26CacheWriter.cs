@@ -29,6 +29,8 @@ namespace Madden26Plugin.Cache
 
             using (NativeWriter nativeWriter = new(msCache, leaveOpen: true))
             {
+                nativeWriter.Write(cacheHelpers.Version);
+
                 nativeWriter.WriteLengthPrefixedString(ProfileManager.Instance.Name);
 
                 nativeWriter.Write(cacheHelpers.GetSystemIteration());
@@ -44,6 +46,8 @@ namespace Madden26Plugin.Cache
                 }
 
                 var ebx = assetManagementService.EnumerateEbx().ToList();
+                //var paths = assetManagementService.EnumerateEbx().ToList().Select(x => x.FullPath.Contains('/') ? x.FullPath.Substring(0, x.FullPath.LastIndexOf('/')) : x.FullPath).Distinct().ToList();
+
                 nativeWriter.Write(ebx.Count());
                 foreach (EbxAssetEntry ebxEntry in ebx)
                 {

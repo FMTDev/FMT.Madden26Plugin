@@ -7,6 +7,8 @@ namespace Madden26Plugin.Cache
 {
     internal class Madden26CacheHelpers
     {
+        public short Version { get; set; } = 1;
+
         public string GetCachePath()
         {
             return Path.Combine(AppContext.BaseDirectory, "_GameCaches", "Madden26.cache");

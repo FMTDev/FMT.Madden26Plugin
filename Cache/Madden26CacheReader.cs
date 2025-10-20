@@ -38,26 +38,29 @@ namespace Madden26Plugin.Cache
             Logger = logger;
             var fss = SingletonService.GetInstance<IFileSystemService>();
             var assetManagementService = SingletonService.GetInstance<IAssetManagementService>();
-            var madden26CacheHelpers = new Madden26CacheHelpers();
+            var cacheHelpers = new Madden26CacheHelpers();
 
             // If no cache, nothing to read
-            if (!File.Exists(madden26CacheHelpers.GetCachePath()))
+            if (!File.Exists(cacheHelpers.GetCachePath()))
                 return false;
 
             // If we already have data, no need to read again
             if (assetManagementService.EnumerateEbx().Any())
                 return true;
 
-            using (NativeReader nativeReader = new NativeReader(new FileStream(madden26CacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
+            using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
+                if (nativeReader.ReadUInt16() != cacheHelpers.Version)
+                    return false;
+
                 if (nativeReader.ReadLengthPrefixedString() != ProfileManager.Instance.Name)
                     return false;
 
                 var cacheHead = nativeReader.ReadULong();
-                if (cacheHead != madden26CacheHelpers.GetSystemIteration())
+                if (cacheHead != cacheHelpers.GetSystemIteration())
                     return false;
 
-                var exeTime = madden26CacheHelpers.GetExeWriteTime();
+                var exeTime = cacheHelpers.GetExeWriteTime();
                 var cacheTime = nativeReader.ReadLong();
                 if (exeTime != cacheTime)
                     return false; // Patching required, so ignore cache
@@ -165,7 +168,6 @@ namespace Madden26Plugin.Cache
             EbxAssetEntry ebxAssetEntry = new();
             ebxAssetEntry.Name = nativeReader.ReadLengthPrefixedString();
             ebxAssetEntry.Sha1 = nativeReader.ReadSha1();
-            ebxAssetEntry.BaseSha1 = ebxAssetEntry.Sha1;
             ebxAssetEntry.Size = nativeReader.ReadLong();
             ebxAssetEntry.OriginalSize = nativeReader.ReadLong();
             ebxAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
@@ -194,7 +196,6 @@ namespace Madden26Plugin.Cache
             ResAssetEntry resAssetEntry = new();
             resAssetEntry.Name = nativeReader.ReadLengthPrefixedString();
             resAssetEntry.Sha1 = nativeReader.ReadSha1();
-            resAssetEntry.BaseSha1 = resAssetEntry.Sha1;
             resAssetEntry.Size = nativeReader.ReadLong();
             resAssetEntry.OriginalSize = nativeReader.ReadLong();
             resAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
@@ -225,7 +226,6 @@ namespace Madden26Plugin.Cache
             ChunkAssetEntry chunkAssetEntry = new();
             chunkAssetEntry.Id = nativeReader.ReadGuid();
             chunkAssetEntry.Sha1 = nativeReader.ReadSha1();
-            chunkAssetEntry.BaseSha1 = chunkAssetEntry.Sha1;
             chunkAssetEntry.Size = nativeReader.ReadLong();
             chunkAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
             chunkAssetEntry.IsInline = nativeReader.ReadBoolean();
@@ -264,6 +264,9 @@ namespace Madden26Plugin.Cache
 
             using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
+                if (nativeReader.ReadUInt16() != cacheHelpers.Version)
+                    return true;
+
                 if (nativeReader.ReadLengthPrefixedString() != ProfileManager.Instance.Name)
                     return true; // rebuild required
 
