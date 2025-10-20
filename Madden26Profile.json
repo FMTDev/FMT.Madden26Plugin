@@ -44,5 +44,8 @@
   "IconName": "Madden26Cover.jpg",
   "SDKGeneratesUsingExeStringDump": true,
   "CanUseModData": false,
-  "ForceUseModData": false
+  "ForceUseModData": false,
+  "EADesktopCommandLineSettings": [
+    "user.gamecommandline.origin.ofr.50.0005821"
+  ]
 }
