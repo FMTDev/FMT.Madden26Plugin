@@ -19,8 +19,8 @@
 
   <ItemGroup>
     <PackageReference Include="FMT.Compilers" Version="2025.99.1.1" />
-    <PackageReference Include="FMT.Core" Version="2025.99.1.1" />
-    <PackageReference Include="FMT.FileTools" Version="2025.99.1.1" />
+    <PackageReference Include="FMT.Core" Version="2025.101.1" />
+    <PackageReference Include="FMT.FileTools" Version="2025.99.2.1" />
     <PackageReference Include="HashDepot" Version="3.1.0" />
   </ItemGroup>
 

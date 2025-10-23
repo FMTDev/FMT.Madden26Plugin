@@ -10,7 +10,7 @@ using System.Text;
 
 namespace Madden26Plugin.Cache
 {
-    internal class Madden26CacheWriter : ICacheWriter
+    public class Madden26CacheWriter : ICacheWriter
     {
         public ILogger Logger { get; private set; }
 
@@ -19,8 +19,6 @@ namespace Madden26Plugin.Cache
             Logger = logger;
             Madden26CacheHelpers cacheHelpers = new();
             var assetManagementService = SingletonService.GetInstance<IAssetManagementService>();
-
-            var fs = SingletonService.GetInstance<IFileSystemService>();
 
             if (File.Exists(cacheHelpers.GetCachePath()))
                 File.Delete(cacheHelpers.GetCachePath());

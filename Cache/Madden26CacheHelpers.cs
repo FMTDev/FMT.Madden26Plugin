@@ -17,6 +17,9 @@ namespace Madden26Plugin.Cache
         public ulong GetSystemIteration()
         {
             var fss = SingletonService.GetInstance<IFileSystemService>();
+            if (!Directory.Exists(fss.BasePath))
+                return 0;
+
             var layoutFiles = Directory.GetFiles(fss.BasePath, "*layout.toc", new EnumerationOptions() { RecurseSubdirectories = true }).ToList();
             layoutFiles = layoutFiles.Where(x => !x.Contains("ModData")).ToList();
 
@@ -53,6 +56,9 @@ namespace Madden26Plugin.Cache
         public long GetExeWriteTime()
         {
             var fss = SingletonService.GetInstance<IFileSystemService>();
+            if (!Directory.Exists(fss.BasePath))
+                return 0;
+
             var exePath = Path.Combine(fss.BasePath, "Madden26.exe");
             if (File.Exists(exePath))
             {

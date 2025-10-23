@@ -287,5 +287,15 @@ namespace Madden26Plugin.Cache
 
             return false; // rebuild NOT required
         }
+
+        public bool ReadIntoLists(ILogger logger, out List<IEbxAssetEntry> ebxAssetEntries, out List<IResourceAssetEntry> resourceAssetEntries, out List<IChunkAssetEntry> chunkAssetEntries)
+        {
+            ebxAssetEntries = new List<IEbxAssetEntry>();
+            resourceAssetEntries = new List<IResourceAssetEntry>();
+            chunkAssetEntries = new List<IChunkAssetEntry>();
+
+            logger.Log("Madden26 Caching does not support this function. Returning no items.");
+            return true;
+        }
     }
 }
