@@ -83,7 +83,7 @@ namespace Madden26Plugin.Cache
                     bE.Name = Encoding.UTF8.GetString(nativeReader.ReadBytes(nameLength));
                     bE.SuperBundleId = nativeReader.ReadInt();
 
-                    if (assetManagementService != null && !assetManagementService.Bundles.Any(x => x.SuperBundleId == bE.SuperBundleId))
+                    if (assetManagementService != null)
                         assetManagementService.Bundles.Add(bE);
 
                 }
