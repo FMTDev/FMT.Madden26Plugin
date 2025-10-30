@@ -136,7 +136,7 @@ namespace Madden26Plugin.Meshes.Readers
             reader.Position = posShaderDebug;
             meshSetLod.shaderDebugName = reader.ReadNullTerminatedString();
             reader.Position = posFullname;
-            meshSetLod.name = reader.ReadNullTerminatedString();
+            meshSetLod.Name = reader.ReadNullTerminatedString();
             reader.Position = posShortname;
             meshSetLod.shortName = reader.ReadNullTerminatedString();
             reader.Position = position4;
