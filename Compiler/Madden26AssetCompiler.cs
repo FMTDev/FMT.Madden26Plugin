@@ -1,6 +1,7 @@
 ﻿using FMT.Compilers;
 using FMT.Core;
 using FMT.Core.Models.TOC;
+using FMT.Core.Resources;
 using FMT.Core.Writers;
 using FMT.Db;
 using FMT.Ebx;
@@ -10,7 +11,6 @@ using FMT.Logging;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
-using FMT.Resources.Textures;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 using Madden26Plugin.ThirdParty;
