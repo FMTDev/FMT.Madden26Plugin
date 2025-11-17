@@ -8,11 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Launcher\CryptBase.dll" />
     <None Remove="Launcher\dpapi.dll" />
     <None Remove="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Launcher\CryptBase.dll" />
     <EmbeddedResource Include="Launcher\dpapi.dll" />
     <EmbeddedResource Include="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
   </ItemGroup>
@@ -20,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="FMT.Compilers" Version="2025.99.1.1" />
     <PackageReference Include="FMT.FileTools" Version="2025.99.2.1" />
-	<PackageReference Include="FMT.Core" Version="2025.104.1.0" />
+	<PackageReference Include="FMT.Core" Version="2025.105.1" />
 
 	<PackageReference Include="HashDepot" Version="3.1.0" />
   </ItemGroup>
