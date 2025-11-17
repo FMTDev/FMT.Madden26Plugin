@@ -38,15 +38,7 @@ namespace Madden26Plugin.Compiler
         /// operation completes successfully.</returns>
         public override async Task<bool> PreCompile(ILogger logger, IModExecutor modExecutor)
         {
-            SingletonService.GetInstance<IFileSystemService>();
-            await Task.Run(delegate
-            {
-                new FileSystemGameUpdateManager(logger).MakeGameVanilla();
-            });
-
-
-            Oodle.Bind(fss.BasePath);
-
+            new Madden26ModsCleanupFunctions().CleanUp();
             return true;
         }
 
@@ -152,16 +144,23 @@ namespace Madden26Plugin.Compiler
         {
             logger.Log($"{nameof(Madden26AssetCompiler)} started");
 
+            // Make the game vanilla before compiling
+            new FileSystemGameUpdateManager(logger).MakeGameVanilla();
+
             fss.TOCFileType = typeof(Madden26TOCFile);
             TypeLibrary.Initialize();
 
             var folder = "native_data/";
             var superBundles = fss.SuperBundles;
+
+            var modsWithNoBundles = modExecutor
+                            .ModifiedAssets
+                            .Where(x => x.Bundles.Count == 0);
             // ------------------------------
             // For some reason, MMC mods do not ship with modified bundles indexes, we are going to have to fix that here
             // This takes a lot of resources and time.
             // @todo: find a way to fix this
-            if (modExecutor.ModifiedAssets.Any(x => x.Bundles.Count == 0))
+            if (modsWithNoBundles.Any())
             {
                 logger.Log("Detected mods without Bundle Hash");
 
@@ -169,7 +168,9 @@ namespace Madden26Plugin.Compiler
                 {
                     var tocFileRAW = $"{folder}{sbName}.toc";
                     string tocFileLocation = fss.ResolvePath(tocFileRAW);
-                    if (!string.IsNullOrEmpty(tocFileLocation) && File.Exists(tocFileLocation))
+                    if (string.IsNullOrEmpty(tocFileLocation) || !File.Exists(tocFileLocation))
+                        continue;
+
                     {
                         logger.Log($"Checking {tocFileRAW} for Bundles");
 
@@ -177,10 +178,9 @@ namespace Madden26Plugin.Compiler
                         Madden26TOCFile tocFile = new(tocFileRAW, false, false, false, -1, true);
                         _ = tocFile;
 
+                        List<int> bundles = new List<int>();
 
-                        foreach (var asset in modExecutor
-                            .ModifiedAssets
-                            .Where(x => x.Bundles.Count == 0))
+                        foreach (var asset in modsWithNoBundles)
                         {
                             if (Guid.TryParse(asset.Name, out _))
                                 continue;
@@ -193,9 +193,25 @@ namespace Madden26Plugin.Compiler
                                 if (!modExecutor.ModifiedBundles.ContainsKey(tocFile.Bundles[findIndexOfEbx].GetNameHash()))
                                     modExecutor.ModifiedBundles.Add(tocFile.Bundles[findIndexOfEbx].GetNameHash(), new ModBundleInfo() {  });
 
-                                asset.Bundles.Add(tocFile.Bundles[findIndexOfEbx].GetNameHash());
+                                var bundleId = tocFile.Bundles[findIndexOfEbx].GetNameHash();
+                                bundles.Add(bundleId);
+                                asset.Bundles.Add(bundleId);
 
                                 logger.Log($"Found bundles in {tocFileRAW}");
+                            }
+                        }
+
+                        bundles = bundles.Distinct().ToList();
+
+                        // likely to be chunks
+                        if (bundles.Any())
+                        {
+                            foreach (var unassigned in modExecutor
+                                .ModifiedAssets
+                                .Where(x => x.Bundles.Count == 0))
+                            {
+                                foreach (var bundleId in bundles.Distinct())
+                                    unassigned.Bundles.Add(bundleId);
                             }
                         }
 
@@ -213,254 +229,251 @@ namespace Madden26Plugin.Compiler
             {
                 var tocFileRAW = $"{folder}{sbName}.toc";
                 string tocFileLocation = fss.ResolvePath(tocFileRAW);
-                if (!string.IsNullOrEmpty(tocFileLocation) && File.Exists(tocFileLocation))
+                if (string.IsNullOrEmpty(tocFileLocation) || !File.Exists(tocFileLocation))
+                    continue;
+
+
+                Madden26TOCFile tocFile = new(tocFileRAW, false, false, false, -1, true);
+                _ = tocFile;
+
+                Dictionary<string, List<DbObject>> modifiedCas = new();
+                var modifiedCasBundles = new HashSet<CASBundle>();
+
+                foreach (int bundleHash in modExecutor.ModifiedBundles.Keys)
                 {
-                    Madden26TOCFile tocFile = new(tocFileRAW, false, false, false, -1, true);
-                    _ = tocFile;
-
-                    Dictionary<string, List<DbObject>> modifiedCas = new();
-                    var modifiedCasBundles = new HashSet<CASBundle>();
-
-                    foreach (int bundleHash in modExecutor.ModifiedBundles.Keys)
-                    {
-                        var indexOfBundle = Array.FindIndex(tocFile.Bundles, b => b.GetNameHash() == bundleHash || b.GetNameHashOfficial() == bundleHash);
-                        if (indexOfBundle != -1)
-                        {
-                            logger.Log($"Found bundles in {tocFileRAW}");
-
-                            // Identify the Bundle being modified
-                            var bundle = tocFile.Bundles[indexOfBundle];
-                            _ = bundle;
-                            var casBundle = tocFile.CasBundles.First(cb => cb.BaseBundle == bundle);
-                            _ = casBundle;
-                            // Add the identified bundle to the modifiedCasBundles hashset. To be used for Writing the Binary Info later
-                            if (!modifiedCasBundles.Contains(casBundle))
-                                modifiedCasBundles.Add(casBundle);
-
-                            tocFile.ShouldReadCASBundles = true;
-                            tocFile.ReadCasBundlesFromCasFiles(new[] { casBundle.BaseBundle.GetNameHash() });
-                            foreach (var t in tocFile.TOCObjectsByCasBundle)
-                            {
-                                foreach (DbObject ebx in t.Value.GetValue<DbObject>("ebx"))
-                                {
-                                    if (modExecutor.ModifiedEbx.ContainsKey(ebx.GetValue<string>("name")))
-                                    {
-                                        IEbxAssetEntry entry = modExecutor.ModifiedEbx[ebx.GetValue<string>("name")];
-                                        byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
-                                        if (entry.ExtraData == null)
-                                            entry.ExtraData = new AssetExtraData() { Cas = ebx.GetValue<ushort>("cas"), Catalog = ebx.GetValue<ushort>("catalog"), DataOffset = ebx.GetValue<uint>("offset") };
-
-                                        var casPath = fss.GetCasPath(entry.ExtraData);
-                                        if (modifiedCas.ContainsKey(casPath))
-                                        {
-                                            if (!modifiedCas[casPath].Any(x => x.GetValue<string>("name") == ebx.GetValue<string>("name")))
-                                                modifiedCas[casPath].Add(ebx);
-                                        }
-                                        else
-                                        {
-                                            modifiedCas[casPath] = new List<DbObject>();
-                                            modifiedCas[casPath].Add(ebx);
-                                        }
-                                    }
-                                }
-
-                                foreach (DbObject res in t.Value.GetValue<DbObject>("res"))
-                                {
-                                    if (modExecutor.ModifiedEbx.ContainsKey(res.GetValue<string>("name")))
-                                    {
-                                        var entry = modExecutor.ModifiedRes[res.GetValue<string>("name")];
-                                        byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
-                                        if (entry.ExtraData == null)
-                                            entry.ExtraData = new AssetExtraData() { Cas = res.GetValue<ushort>("cas"), Catalog = res.GetValue<ushort>("catalog"), DataOffset = res.GetValue<uint>("offset") };
-
-                                        var casPath = fss.GetCasPath(entry.ExtraData);
-                                        if (modifiedCas.ContainsKey(casPath))
-                                        {
-                                            modifiedCas[casPath].Add(res);
-                                        }
-                                        else
-                                        {
-                                            modifiedCas[casPath] = new List<DbObject>();
-                                            modifiedCas[casPath].Add(res);
-                                        }
-                                    }
-                                }
-
-                                foreach (DbObject chunk in t.Value.GetValue<DbObject>("chunks"))
-                                {
-                                    if (modExecutor.ModifiedChunks.ContainsKey(chunk.GetValue<Guid>("id")))
-                                    {
-                                        IChunkAssetEntry entry = modExecutor.ModifiedChunks[chunk.GetValue<Guid>("id")];
-                                        byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
-                                        if (entry.ExtraData == null)
-                                            entry.ExtraData = new AssetExtraData() { Cas = chunk.GetValue<ushort>("cas"), Catalog = chunk.GetValue<ushort>("catalog"), DataOffset = chunk.GetValue<uint>("offset") };
-
-                                        var casPath = fss.GetCasPath(entry.ExtraData);
-                                        if (modifiedCas.ContainsKey(casPath))
-                                        {
-                                            modifiedCas[casPath].Add(chunk);
-                                        }
-                                        else
-                                        {
-                                            modifiedCas[casPath] = new List<DbObject>();
-                                            modifiedCas[casPath].Add(chunk);
-                                        }
-
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Dictionary<string, List<DbObject>> newBundleChanges = new();
-                    foreach (var modified in modifiedCas)
-                    {
-                        var casPath = modified.Key;
-                        var fullCasPath = fss.ResolvePath(casPath);
-                        if (string.IsNullOrEmpty(fullCasPath) || !File.Exists(fullCasPath))
-                            continue;
-
-                        logger.Log($"Found {modified.Value.Count} items in {modified.Key}");
-
-                        using (var bw = new BinaryWriter(new FileStream(fullCasPath, FileMode.Open, FileAccess.ReadWrite)))
-                        {
-                            foreach (var obj in modified.Value)
-                            {
-                                byte[] data = null;
-                                int originalSize = -1;
-                                IAssetEntry entry = null;
-                                if (obj.HasValue("name"))
-                                {
-                                    var name = obj.GetValue<string>("name");
-                                    if (modExecutor.ModifiedRes.ContainsKey(name) && obj.HasValue("res"))
-                                    {
-                                        entry = modExecutor.ModifiedRes[name];
-                                        data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
-                                    }
-                                    else if (modExecutor.ModifiedEbx.ContainsKey(name) && obj.HasValue("ebx"))
-                                    {
-                                        entry = modExecutor.ModifiedEbx[name];
-                                        data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
-                                    }
-                                }
-                                else if (obj.HasValue("id"))
-                                {
-                                    var id = obj.GetValue<Guid>("id");
-                                    if (modExecutor.ModifiedChunks.ContainsKey(id))
-                                    {
-                                        entry = modExecutor.ModifiedChunks[id];
-                                        data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
-                                    }
-                                }
-
-                                if (entry == null)
-                                    continue;
-
-                                originalSize = (int)entry.OriginalSize;
-                                if (data != null)
-                                {
-                                    var newOffset = bw.BaseStream.Length;
-                                    bw.BaseStream.Position = bw.BaseStream.Length;
-                                    bw.Write(data, 0, data.Length);
-                                    if (!newBundleChanges.ContainsKey(obj.GetValue<string>("ParentCASBundleLocation")))
-                                        newBundleChanges.Add(obj.GetValue<string>("ParentCASBundleLocation"), new List<DbObject>());
-
-                                    obj.SetValue("offset", newOffset);
-                                    obj.SetValue("size", data.Length);
-                                    obj.SetValue("originalSize", originalSize);
-                                    obj.SetValue("sha1", entry.Sha1);
-
-                                    if (obj.HasValue("resMeta") && entry is ResAssetEntry resAssetEntry)
-                                        obj.SetValue("resMeta", resAssetEntry.ResMeta);
-
-                                    if (obj.HasValue("logicalOffset") && entry is ChunkAssetEntry chunkAssetEntry)
-                                    {
-                                        obj.SetValue("logicalOffset", chunkAssetEntry.LogicalOffset);
-                                        obj.SetValue("logicalSize", chunkAssetEntry.LogicalSize);
-                                    }
-
-                                    newBundleChanges[obj.GetValue<string>("ParentCASBundleLocation")].Add(obj);
-
-                                    obj.SetValue("ModifiedByFMT", true);
-                                }
-                            }
-                        }
-                    }
-
-                    if (newBundleChanges.Count == 0)
+                    var indexOfBundle = Array.FindIndex(tocFile.Bundles, b => b.GetNameHash() == bundleHash || b.GetNameHashOfficial() == bundleHash);
+                    if (indexOfBundle == -1)
                         continue;
 
-                    foreach (var objL in newBundleChanges.Values)
                     {
-                        foreach (var obj in objL)
+                        logger.Log($"Found bundles in {tocFileRAW}");
+
+                        // Identify the Bundle being modified
+                        var bundle = tocFile.Bundles[indexOfBundle];
+                        _ = bundle;
+                        var casBundle = tocFile.CasBundles.First(cb => cb.BaseBundle == bundle);
+                        _ = casBundle;
+                        // Add the identified bundle to the modifiedCasBundles hashset. To be used for Writing the Binary Info later
+                        if (!modifiedCasBundles.Contains(casBundle))
+                            modifiedCasBundles.Add(casBundle);
+
+                        tocFile.ShouldReadCASBundles = true;
+                        tocFile.ReadCasBundlesFromCasFiles(new[] { casBundle.BaseBundle.GetNameHash() });
+                        foreach (var t in tocFile.TOCObjectsByCasBundle)
                         {
-                            foreach (var casBundle in modifiedCasBundles)
+                            foreach (DbObject ebx in t.Value.GetValue<DbObject>("ebx"))
                             {
-                                var entryIndex = obj.GetValue<int>("EntryIndex");
-                                if (entryIndex != -1 && entryIndex < casBundle.Entries.Count) 
+                                if (modExecutor.ModifiedEbx.ContainsKey(ebx.GetValue<string>("name")))
                                 {
-                                    var casBundleEntry = casBundle.Entries[entryIndex];
-                                    casBundleEntry.bundleSizeInCas = (uint)obj.GetValue<uint>("size");
-                                    casBundleEntry.bundleOffsetInCas = (uint)obj.GetValue<uint>("offset");
+                                    IEbxAssetEntry entry = modExecutor.ModifiedEbx[ebx.GetValue<string>("name")];
+                                    byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                    if (entry.ExtraData == null)
+                                        entry.ExtraData = new AssetExtraData() { Cas = ebx.GetValue<ushort>("cas"), Catalog = ebx.GetValue<ushort>("catalog"), DataOffset = ebx.GetValue<uint>("offset") };
+
+                                    var casPath = fss.GetCasPath(entry.ExtraData);
+                                    if (modifiedCas.ContainsKey(casPath))
+                                    {
+                                        if (!modifiedCas[casPath].Any(x => x.GetValue<string>("name") == ebx.GetValue<string>("name")))
+                                            modifiedCas[casPath].Add(ebx);
+                                    }
+                                    else
+                                    {
+                                        modifiedCas[casPath] = new List<DbObject>();
+                                        modifiedCas[casPath].Add(ebx);
+                                    }
+                                }
+                            }
+
+                            foreach (DbObject res in t.Value.GetValue<DbObject>("res"))
+                            {
+                                if (modExecutor.ModifiedRes.ContainsKey(res.GetValue<string>("name")))
+                                {
+                                    var entry = modExecutor.ModifiedRes[res.GetValue<string>("name")];
+                                    byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                    if (entry.ExtraData == null)
+                                        entry.ExtraData = new AssetExtraData() { Cas = res.GetValue<ushort>("cas"), Catalog = res.GetValue<ushort>("catalog"), DataOffset = res.GetValue<uint>("offset") };
+
+                                    var casPath = fss.GetCasPath(entry.ExtraData);
+                                    if (modifiedCas.ContainsKey(casPath))
+                                    {
+                                        modifiedCas[casPath].Add(res);
+                                    }
+                                    else
+                                    {
+                                        modifiedCas[casPath] = new List<DbObject>();
+                                        modifiedCas[casPath].Add(res);
+                                    }
+                                }
+                            }
+
+                            foreach (DbObject chunk in t.Value.GetValue<DbObject>("chunks"))
+                            {
+                                if (modExecutor.ModifiedChunks.ContainsKey(chunk.GetValue<Guid>("id")))
+                                {
+                                    IChunkAssetEntry entry = modExecutor.ModifiedChunks[chunk.GetValue<Guid>("id")];
+                                    byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                    if (entry.ExtraData == null)
+                                        entry.ExtraData = new AssetExtraData() { Cas = chunk.GetValue<ushort>("cas"), Catalog = chunk.GetValue<ushort>("catalog"), DataOffset = chunk.GetValue<uint>("offset") };
+
+                                    var casPath = fss.GetCasPath(entry.ExtraData);
+                                    if (modifiedCas.ContainsKey(casPath))
+                                    {
+                                        modifiedCas[casPath].Add(chunk);
+                                    }
+                                    else
+                                    {
+                                        modifiedCas[casPath] = new List<DbObject>();
+                                        if (!modifiedCas[casPath].Any(x => x.GetValue<Guid>("id") == chunk.GetValue<Guid>("id")))
+                                            modifiedCas[casPath].Add(chunk);
+                                    }
+
                                 }
                             }
                         }
                     }
+                }
 
-                    foreach (var casBundle in modifiedCasBundles)
+                Dictionary<string, List<DbObject>> newBundleChanges = new();
+                foreach (var modified in modifiedCas)
+                {
+                    var casPath = modified.Key;
+                    var fullCasPath = fss.ResolvePath(casPath);
+                    if (string.IsNullOrEmpty(fullCasPath) || !File.Exists(fullCasPath))
+                        continue;
+
+                    logger.Log($"Found {modified.Value.Count} items in {modified.Key}");
+
+                    using (var bw = new BinaryWriter(new FileStream(fullCasPath, FileMode.Open, FileAccess.ReadWrite)))
                     {
-                        BundleWriter bundleWriter = new();
-                        var bundleObjects = tocFile.TOCObjectsByCasBundle[casBundle];
-                        _ = bundleObjects;
-                        foreach (var modified in modifiedCas)
+                        foreach (var obj in modified.Value)
                         {
-                            foreach (var bundleObj in modified.Value)
+                            byte[] data = null;
+                            int originalSize = -1;
+                            IAssetEntry entry = null;
+                            if (obj.HasValue("name"))
                             {
+                                var name = obj.GetValue<string>("name");
+                                if (modExecutor.ModifiedRes.ContainsKey(name) && obj.HasValue("res"))
+                                {
+                                    entry = modExecutor.ModifiedRes[name];
+                                    data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                }
+                                else if (modExecutor.ModifiedEbx.ContainsKey(name) && obj.HasValue("ebx"))
+                                {
+                                    entry = modExecutor.ModifiedEbx[name];
+                                    data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                }
+                            }
+                            else if (obj.HasValue("id"))
+                            {
+                                var id = obj.GetValue<Guid>("id");
+                                if (modExecutor.ModifiedChunks.ContainsKey(id))
+                                {
+                                    entry = modExecutor.ModifiedChunks[id];
+                                    data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                }
+                            }
 
+                            if (entry == null)
+                                continue;
+
+                            originalSize = (int)entry.OriginalSize;
+                            if (data != null)
+                            {
+                                var newOffset = bw.BaseStream.Length;
+                                bw.BaseStream.Position = bw.BaseStream.Length;
+                                bw.Write(data, 0, data.Length);
+                                if (!newBundleChanges.ContainsKey(obj.GetValue<string>("ParentCASBundleLocation")))
+                                    newBundleChanges.Add(obj.GetValue<string>("ParentCASBundleLocation"), new List<DbObject>());
+
+                                obj.SetValue("offset", newOffset);
+                                obj.SetValue("size", data.Length);
+                                obj.SetValue("originalSize", originalSize);
+                                obj.SetValue("sha1", entry.Sha1);
+
+                                if (obj.HasValue("resMeta") && entry is ResAssetEntry resAssetEntry)
+                                    obj.SetValue("resMeta", resAssetEntry.ResMeta);
+
+                                if (obj.HasValue("logicalOffset") && entry is ChunkAssetEntry chunkAssetEntry)
+                                {
+                                    obj.SetValue("logicalOffset", chunkAssetEntry.LogicalOffset);
+                                    obj.SetValue("logicalSize", chunkAssetEntry.LogicalSize);
+                                }
+
+                                newBundleChanges[obj.GetValue<string>("ParentCASBundleLocation")].Add(obj);
+
+                                obj.SetValue("ModifiedByFMT", true);
                             }
                         }
+                    }
+                }
 
-                        var casPathRaw = fss.GetFilePath(casBundle.Catalog, casBundle.Cas, casBundle.Patch);
-                        var resolvedPathCas = fss.ResolvePath(casPathRaw, false);
+                if (newBundleChanges.Count == 0)
+                    continue;
+
+                foreach (var objL in newBundleChanges.Values)
+                {
+                    foreach (var obj in objL)
+                    {
+                        foreach (var casBundle in modifiedCasBundles)
+                        {
+                            var entryIndex = obj.GetValue<int>("EntryIndex");
+                            if (entryIndex != -1 && entryIndex < casBundle.Entries.Count)
+                            {
+                                var casBundleEntry = casBundle.Entries[entryIndex];
+                                casBundleEntry.bundleSizeInCas = (uint)obj.GetValue<uint>("size");
+                                casBundleEntry.bundleOffsetInCas = (uint)obj.GetValue<uint>("offset");
+                            }
+                        }
+                    }
+                }
+
+                foreach (var casBundle in modifiedCasBundles)
+                {
+                    BundleWriter bundleWriter = new();
+                    var bundleObjects = tocFile.TOCObjectsByCasBundle[casBundle];
+                    _ = bundleObjects;
+
+                    var casPathRaw = fss.GetFilePath(casBundle.Catalog, casBundle.Cas, casBundle.Patch);
+                    var resolvedPathCas = fss.ResolvePath(casPathRaw, false);
 
 #if DEBUG
-                        using (var nrCas = new NativeReader(new FileStream(resolvedPathCas, FileMode.Open, FileAccess.Read)))
-                        {
-                            var entry = casBundle.Entries[0];
-                            nrCas.Position = entry.bundleOffsetInCas;
-                            var casBytes = nrCas.ReadBytes((int)entry.bundleSizeInCas);
-                            DebugBytesToFileLogger.Instance.WriteAllBytes($"Bundle_{casBundle.BaseBundle.GetNameHash()}_Decompressed.bin", casBytes, "Bundles/Read", false);
-                        }
+                    using (var nrCas = new NativeReader(new FileStream(resolvedPathCas, FileMode.Open, FileAccess.Read)))
+                    {
+                        var entry = casBundle.Entries[0];
+                        nrCas.Position = entry.bundleOffsetInCas;
+                        var casBytes = nrCas.ReadBytes((int)entry.bundleSizeInCas);
+                        DebugBytesToFileLogger.Instance.WriteAllBytes($"Bundle_{casBundle.BaseBundle.GetNameHash()}_Decompressed.bin", casBytes, "Bundles/Read", false);
+                    }
 #endif
 
-                        using (var nwCasBundle = new NativeWriter(new FileStream(resolvedPathCas, FileMode.Open, FileAccess.Write, FileShare.Write)))
-                        {
-                            var msNewBundle = new MemoryStream();
-                            bundleWriter.Write(msNewBundle, bundleObjects);
-                            _ = msNewBundle;
-                            nwCasBundle.Position = nwCasBundle.Length;
-                            var entry = casBundle.Entries[0];
-                            entry.bundleOffsetInCas = (uint)nwCasBundle.Position;
-                            nwCasBundle.Write(msNewBundle.ToArray());
-                            entry.bundleSizeInCas = (uint)msNewBundle.Length;
-                        }
-                    }
-
-                    if (modifiedCasBundles.Count > 0)
+                    using (var nwCasBundle = new NativeWriter(new FileStream(resolvedPathCas, FileMode.Open, FileAccess.Write, FileShare.Write)))
                     {
-                        Madden26TOCFileWriter tOCFileWriter = new Madden26TOCFileWriter();
-
-                        if (tocFile.CasBundles == null)
-                            tocFile.CasBundles = new CASBundle[0];
-
-                        tOCFileWriter.Write(tocFile, false);
+                        var msNewBundle = new MemoryStream();
+                        bundleWriter.Write(msNewBundle, bundleObjects);
+                        _ = msNewBundle;
+                        nwCasBundle.Position = nwCasBundle.Length;
+                        var entry = casBundle.Entries[0];
+                        entry.bundleOffsetInCas = (uint)nwCasBundle.Position;
+                        nwCasBundle.Write(msNewBundle.ToArray());
+                        entry.bundleSizeInCas = (uint)msNewBundle.Length;
                     }
+                }
+
+                if (modifiedCasBundles.Count > 0)
+                {
+                    Madden26TOCFileWriter tOCFileWriter = new Madden26TOCFileWriter();
+
+                    if (tocFile.CasBundles == null)
+                        tocFile.CasBundles = new CASBundle[0];
+
+                    tOCFileWriter.Write(tocFile, false);
+                }
 
 
-                    if (true)
-                    {
+                if (true)
+                {
 
-                    }
                 }
             }
 
@@ -516,7 +529,6 @@ namespace Madden26Plugin.Compiler
                     //    continue;
 
                     ProcessModifiedTOCChunksIntoTOCFile(result, pathToTOCFileRAW, pathToTOCFile, tocFileObj, modExecutor);
-                    TOCFile.RebuildTOCSignatureOnly(pathToTOCFile);
                 }
             }
             catch (Exception ex)
@@ -621,21 +633,41 @@ namespace Madden26Plugin.Compiler
         {
             // --------------------------------------------------------------------------------------------------------
             // Apply Anti-Cheat bypass
+            // Deploy CryptBase.dll to the output folder
+            DeployEmbeddedResource("CryptBase.dll", Path.Combine(fss.BasePath, "CryptBase.dll"));
+            // Deploy dpapi.dll to the output folder
+            DeployEmbeddedResource("dpapi.dll", Path.Combine(fss.BasePath, "dpapi.dll"));
 
-            var dpApi = EmbeddedResourceHelper.GetEmbeddedResourceByName("dpapi.dll");
-            var ac = EmbeddedResourceHelper.GetEmbeddedResourceByName("EAAntiCheat.GameServiceLauncher.exe");
+            // Backup the original EAAntiCheat.GameServiceLauncher.exe if it exists and a backup does not already exist
+            if (File.Exists(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe")) && !File.Exists(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe.backup")))
+                File.Move(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe"), Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe.backup"));
 
-            var msdpapi = new MemoryStream();
-            var msAC = new MemoryStream();
-            dpApi.CopyTo(msdpapi);
-            ac.CopyTo(msAC);
-
-            File.WriteAllBytes(Path.Combine(modExecutor.GamePath, "dpapi.dll"), msdpapi.ToArray());
-            File.WriteAllBytes(Path.Combine(modExecutor.GamePath, "EAAntiCheat.GameServiceLauncher.exe"), msAC.ToArray());
+            // Deploy the modified EAAntiCheat.GameServiceLauncher.exe to the output folder
+            DeployEmbeddedResource("EAAntiCheat.GameServiceLauncher.exe", Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe"));
 
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
 
             return base.PostCompile(logger, modExecutor);
+        }
+
+        private byte[] GetEmbeddedResourceBytes(string resourceName)
+        {
+            var resourceStream = EmbeddedResourceHelper.GetEmbeddedResourceByName(resourceName);
+            if (resourceStream != null)
+            {
+                using (var ms = new MemoryStream())
+                {
+                    resourceStream.CopyTo(ms);
+                    ms.Position = 0;
+                    return ms.ToArray();
+                }
+            }
+            return null;
+        }
+
+        private void DeployEmbeddedResource(string resourceName, string outputPath)
+        {
+            File.WriteAllBytes(outputPath, GetEmbeddedResourceBytes(resourceName));
         }
 
         public static ulong OodleCompress(byte[] buffer, Oodle.OodleFormat format, Oodle.OodleCompressionLevel compressionLevel, out byte[] compBuffer, out ushort compressCode, out bool uncompressed, int bufferSize = 262144)
