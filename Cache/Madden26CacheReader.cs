@@ -5,6 +5,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ProfileSystem;
 using FMT.ServicesManagers;
+using FMT.ServicesManagers.AssetEntryServicing;
 using FMT.ServicesManagers.Interfaces;
 using System.Text;
 
@@ -13,6 +14,7 @@ namespace Madden26Plugin.Cache
     public class Madden26CacheReader : ICacheReader
     {
         protected ILogger Logger { get; set; }
+        private ChunkAssetEntryService chunkAssetEntryService { get; } = new ChunkAssetEntryService();
 
         // NOT NEEDED
         public ulong EbxDataOffset { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
@@ -45,8 +47,8 @@ namespace Madden26Plugin.Cache
                 return false;
 
             // If we already have data, no need to read again
-            if (assetManagementService.EnumerateEbx().Any())
-                return true;
+            //if (assetManagementService.EnumerateEbx().Any())
+            //    return true;
 
             using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
@@ -141,24 +143,24 @@ namespace Madden26Plugin.Cache
                         assetManagementService.AddChunk(asset as ChunkAssetEntry);
                 }
 
-                // ------------------------------------------------------------------------
-                // Chunks in Bundles
-                logger.Log("Cache: Reading Chunks in Bundles");
-                count = nativeReader.ReadInt();
-                for (int chunkIndex = 0; chunkIndex < count; chunkIndex++)
-                {
-                    if (chunkIndex % 100 == 0)
-                    {
-                        var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
-                        logger.LogProgress(pct);
-                        logger.Log($"Cache: Reading Chunks [{pct}%]");
-                    }
-                    var chunkAssetEntry = ReadChunkAssetEntry(nativeReader);
-                    chunkAssetEntry.IsTocChunk = true;
+                //// ------------------------------------------------------------------------
+                //// Chunks in Bundles
+                //logger.Log("Cache: Reading Chunks in Bundles");
+                //count = nativeReader.ReadInt();
+                //for (int chunkIndex = 0; chunkIndex < count; chunkIndex++)
+                //{
+                //    if (chunkIndex % 100 == 0)
+                //    {
+                //        var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
+                //        logger.LogProgress(pct);
+                //        logger.Log($"Cache: Reading Chunks [{pct}%]");
+                //    }
+                //    var chunkAssetEntry = ReadChunkAssetEntry(nativeReader);
+                //    chunkAssetEntry.IsTocChunk = true;
 
-                    if (assetManagementService != null)
-                        assetManagementService.AddChunk(chunkAssetEntry as ChunkAssetEntry);
-                }
+                //    if (assetManagementService != null)
+                //        assetManagementService.AddChunk(chunkAssetEntry as ChunkAssetEntry);
+                //}
             }
             return true;
         }
@@ -223,34 +225,40 @@ namespace Madden26Plugin.Cache
 
         public virtual IChunkAssetEntry ReadChunkAssetEntry(NativeReader nativeReader)
         {
-            ChunkAssetEntry chunkAssetEntry = new();
-            chunkAssetEntry.Id = nativeReader.ReadGuid();
-            chunkAssetEntry.Sha1 = nativeReader.ReadSha1();
-            chunkAssetEntry.Size = nativeReader.ReadLong();
-            chunkAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
-            chunkAssetEntry.IsInline = nativeReader.ReadBoolean();
-            chunkAssetEntry.BundledSize = nativeReader.ReadUInt();
-            chunkAssetEntry.RangeStart = nativeReader.ReadUInt();
-            chunkAssetEntry.RangeEnd = nativeReader.ReadUInt();
-            chunkAssetEntry.LogicalOffset = nativeReader.ReadUInt();
-            chunkAssetEntry.LogicalSize = nativeReader.ReadUInt();
-            chunkAssetEntry.H32 = nativeReader.ReadInt();
-            chunkAssetEntry.FirstMip = nativeReader.ReadInt();
-            if (nativeReader.ReadBoolean())
-            {
-                chunkAssetEntry.ExtraData = new AssetExtraData();
-                chunkAssetEntry.ExtraData.DataOffset = nativeReader.ReadUInt();
-                chunkAssetEntry.ExtraData.Catalog = nativeReader.ReadUShort();
-                chunkAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
-                chunkAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
-                chunkAssetEntry.Location = AssetDataLocation.CasNonIndexed;
-            }
+              var chunkAssetEntry = chunkAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as ChunkAssetEntry;
 
-            int bundleCount = nativeReader.ReadInt();
-            for (int i = 0; i < bundleCount; i++)
-            {
-                chunkAssetEntry.Bundles.Add(nativeReader.ReadInt());
-            }
+//            ChunkAssetEntry chunkAssetEntry = new();
+//            chunkAssetEntry.Id = nativeReader.ReadGuid();
+//#if DEBUG
+//            if (chunkAssetEntry.Id.ToString() == "599d4603-a770-a4f9-1da4-5be37f9749ed")
+//            {
+
+//            }
+//#endif
+//            chunkAssetEntry.Sha1 = nativeReader.ReadSha1();
+//            chunkAssetEntry.Size = nativeReader.ReadLong();
+//            chunkAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
+//            chunkAssetEntry.IsInline = nativeReader.ReadBoolean();
+//            chunkAssetEntry.BundledSize = nativeReader.ReadUInt();
+//            chunkAssetEntry.RangeStart = nativeReader.ReadUInt();
+//            chunkAssetEntry.RangeEnd = nativeReader.ReadUInt();
+//            chunkAssetEntry.LogicalOffset = nativeReader.ReadUInt();
+//            chunkAssetEntry.LogicalSize = nativeReader.ReadUInt();
+//            chunkAssetEntry.H32 = nativeReader.ReadInt();
+//            chunkAssetEntry.FirstMip = nativeReader.ReadInt();
+//            chunkAssetEntry.IsTocChunk = nativeReader.ReadBoolean();
+//            chunkAssetEntry.ExtraData = new AssetExtraData();
+//            chunkAssetEntry.ExtraData.DataOffset = nativeReader.ReadUInt();
+//            chunkAssetEntry.ExtraData.Catalog = nativeReader.ReadUShort();
+//            chunkAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
+//            chunkAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
+//            chunkAssetEntry.Location = AssetDataLocation.CasNonIndexed;
+
+//            int bundleCount = nativeReader.ReadUInt16();
+//            for (int i = 0; i < bundleCount; i++)
+//            {
+//                chunkAssetEntry.Bundles.Add(nativeReader.ReadInt());
+//            }
 
             return chunkAssetEntry;
         }
@@ -293,6 +301,31 @@ namespace Madden26Plugin.Cache
             ebxAssetEntries = new List<IEbxAssetEntry>();
             resourceAssetEntries = new List<IResourceAssetEntry>();
             chunkAssetEntries = new List<IChunkAssetEntry>();
+
+            var fss = SingletonService.GetInstance<IFileSystemService>();
+
+            if (!SingletonService.Instantiated<IAssetManagementService>())
+                return false;
+
+            var assetManagementService = SingletonService.GetInstance<IAssetManagementService>();
+            var cacheHelpers = new Madden26CacheHelpers();
+
+            // If no cache, nothing to read
+            if (!File.Exists(cacheHelpers.GetCachePath()))
+                return false;
+
+            using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
+            {
+                // get past header
+                _ = nativeReader.ReadUInt16();
+
+                _ = nativeReader.ReadLengthPrefixedString();
+
+                _ = nativeReader.ReadULong();
+                
+                _ = nativeReader.ReadLong();
+            }
+
 
             logger.Log("Madden26 Caching does not support this function. Returning no items.");
             return true;

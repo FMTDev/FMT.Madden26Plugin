@@ -85,15 +85,15 @@ namespace Madden26Plugin
                 uint decodeAndOffset = nativeReader.ReadUInt(Endian.Big);
                 uint order = decodeAndOffset & 0xFFFFFFu;
                 (Guid, uint) superBundleChunk = new(guidReverse, decodeAndOffset);
-                while (TocChunks.Count <= order / 3u)
+                while (TocChunks.Count <= order / 4u)
                 {
                     TocChunks.Add(null);
                 }
-                TocChunks[(int)(order / 3u)] = new ChunkAssetEntry
+                TocChunks[(int)(order / 4u)] = new ChunkAssetEntry
                 {
                     Id = guidReverse
                 };
-                TOCChunkByOffset.Add(order, TocChunks[(int)(order / 3u)]);
+                TOCChunkByOffset.Add(order, TocChunks[(int)(order / 4u)]);
             }
 
             var expectedOffsetAfterGuid = 556 + MetaData.ChunkGuidOffset + (4 * MetaData.ChunkCount) + (16 * MetaData.ChunkCount);
@@ -130,6 +130,7 @@ namespace Madden26Plugin
                 tocChunk.ExtraData.IsPatch = catcaspatch.IsInPatch;
                 tocChunk.ExtraData.DataOffset = offset;
                 tocChunk.Bundles.Add(ChunkDataBundleId);
+                //tocChunk.Bundles.Add(Fnv1a.HashStringUTF8("TocChunks"));
                 if (assetManagementService != null && ProcessData)
                     assetManagementService.AddChunk(tocChunk);
             }

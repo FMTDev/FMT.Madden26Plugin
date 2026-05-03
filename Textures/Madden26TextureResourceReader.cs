@@ -19,6 +19,7 @@ namespace Madden26Plugin.Textures
             nativeReader.Position = 0;
             DebugBytesToFileLogger.Instance.WriteAllBytes("Texture.bin", msCopy.ToArray(), "Texture/Madden26/Read", false);
 #endif
+            texture.UnknownBytes.Clear();
 
             texture.MipOffsets[0] = nativeReader.ReadUInt();
             texture.MipOffsets[1] = nativeReader.ReadUInt();
@@ -38,7 +39,9 @@ namespace Madden26Plugin.Textures
                                 select nativeReader.ReadUInt()).ToArray();
 
             texture.ChunkSize = nativeReader.ReadUInt();
-            texture.AssetNameHash = nativeReader.ReadUInt();
+            // Todo: this is a ulong
+            texture.UnknownBytes.Add(nativeReader.ReadBytes(8));
+            texture.AssetNameHash = (uint)BitConverter.ToUInt64(texture.UnknownBytes[1]);
             texture.TextureGroup = nativeReader.ReadNullTerminatedString();
 
             List<byte> lastBytes = new();

@@ -56,6 +56,7 @@ namespace Madden26Plugin
                 currentCatalog = entry.catalog;
                 currentPatch = entry.isInPatch;
             }
+            writer.Flush();
             casBundle.Flags = newFlags.ToArray();
             casBundle.FlagsOffset = (int)writer.Position - (int)casBundleOffsetPosition;
             writer.WriteBytes(casBundle.Flags);

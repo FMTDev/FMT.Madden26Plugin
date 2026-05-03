@@ -5,6 +5,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ProfileSystem;
 using FMT.ServicesManagers;
+using FMT.ServicesManagers.AssetEntryServicing;
 using FMT.ServicesManagers.Interfaces;
 using System.Text;
 
@@ -13,6 +14,8 @@ namespace Madden26Plugin.Cache
     public class Madden26CacheWriter : ICacheWriter
     {
         public ILogger Logger { get; private set; }
+
+        private ChunkAssetEntryService chunkAssetEntryService { get; } = new ChunkAssetEntryService();
 
         public void Write(ILogger logger)
         {
@@ -66,12 +69,12 @@ namespace Madden26Plugin.Cache
                     WriteChunkEntry(nativeWriter, chunkEntry);
                 }
 
-                nativeWriter.Write(assetManagementService.SuperBundleChunks.Count);
-                foreach (ChunkAssetEntry chunkEntry in assetManagementService.SuperBundleChunks.Values)
-                {
+                //nativeWriter.Write(assetManagementService.SuperBundleChunks.Count);
+                //foreach (ChunkAssetEntry chunkEntry in assetManagementService.SuperBundleChunks.Values)
+                //{
 
-                    WriteChunkEntry(nativeWriter, chunkEntry);
-                }
+                //    WriteChunkEntry(nativeWriter, chunkEntry);
+                //}
             }
 
 
@@ -146,36 +149,43 @@ namespace Madden26Plugin.Cache
 
 
 
-        public virtual void WriteChunkEntry(NativeWriter nativeWriter, IChunkAssetEntry chunkEntry)
+        public void WriteChunkEntry(NativeWriter nativeWriter, IChunkAssetEntry chunkEntry)
         {
-            BinaryWriter writer = new BinaryWriter(new MemoryStream());
-            nativeWriter.Write(chunkEntry.Id);
-            nativeWriter.Write(chunkEntry.Sha1);
-            nativeWriter.Write(chunkEntry.Size);
-            nativeWriter.Write((byte)chunkEntry.Location);
-            nativeWriter.Write(chunkEntry.IsInline);
-            nativeWriter.Write(chunkEntry.BundledSize);
-            nativeWriter.Write(chunkEntry.RangeStart);
-            nativeWriter.Write(chunkEntry.RangeEnd);
-            nativeWriter.Write(chunkEntry.LogicalOffset);
-            nativeWriter.Write(chunkEntry.LogicalSize);
-            nativeWriter.Write(chunkEntry.H32);
-            nativeWriter.Write(chunkEntry.FirstMip);
-            bool extraDataExists = DoesExtraDataExist(chunkEntry);
-            nativeWriter.Write(extraDataExists);
-            if (extraDataExists)
+#if DEBUG
+            if (chunkEntry.Id.ToString() == "599d4603-a770-a4f9-1da4-5be37f9749ed")
             {
-                nativeWriter.Write(chunkEntry.ExtraData.DataOffset);
-                nativeWriter.Write(chunkEntry.ExtraData.Catalog.Value);
-                nativeWriter.Write(chunkEntry.ExtraData.Cas.Value);
-                nativeWriter.Write(chunkEntry.ExtraData.IsPatch);
-            }
 
-            nativeWriter.Write(chunkEntry.Bundles.Count);
-            foreach (int bundleId in chunkEntry.Bundles)
-            {
-                nativeWriter.Write(bundleId);
             }
+#endif
+
+
+            BinaryWriter writer = new BinaryWriter(new MemoryStream());
+            var bytes = chunkAssetEntryService.WriteAssetEntryInfo(chunkEntry);
+            nativeWriter.WriteLengthPrefixedBytes(bytes);
+
+            //nativeWriter.Write(chunkEntry.Id);
+            //nativeWriter.Write(chunkEntry.Sha1);
+            //nativeWriter.Write(chunkEntry.Size);
+            //nativeWriter.Write((byte)chunkEntry.Location);
+            //nativeWriter.Write(chunkEntry.IsInline);
+            //nativeWriter.Write(chunkEntry.BundledSize);
+            //nativeWriter.Write(chunkEntry.RangeStart);
+            //nativeWriter.Write(chunkEntry.RangeEnd);
+            //nativeWriter.Write(chunkEntry.LogicalOffset);
+            //nativeWriter.Write(chunkEntry.LogicalSize);
+            //nativeWriter.Write(chunkEntry.H32);
+            //nativeWriter.Write(chunkEntry.FirstMip);
+            //nativeWriter.Write(chunkEntry.IsTocChunk);
+            //nativeWriter.Write(chunkEntry.ExtraData.DataOffset);
+            //nativeWriter.Write(chunkEntry.ExtraData.Catalog.Value);
+            //nativeWriter.Write(chunkEntry.ExtraData.Cas.Value);
+            //nativeWriter.Write(chunkEntry.ExtraData.IsPatch);
+
+            //nativeWriter.Write((ushort)chunkEntry.Bundles.Count);
+            //foreach (int bundleId in chunkEntry.Bundles)
+            //{
+            //    nativeWriter.Write(bundleId);
+            //}
         }
     }
 }

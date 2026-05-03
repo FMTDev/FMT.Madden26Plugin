@@ -20,9 +20,11 @@ namespace Madden26Plugin
                     Madden26TOCFile tocFile = new(tocFileRAW, true, true, false, -1, false);
                     tocFile.Dispose();
                     GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
-                    GC.WaitForFullGCComplete();
                 }
             }
+
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);
+            GC.WaitForFullGCComplete();
         }
 
         public IEnumerable<IAssetEntry> Load(IEnumerable<string> superBundles)

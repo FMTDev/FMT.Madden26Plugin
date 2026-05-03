@@ -156,6 +156,9 @@ namespace Madden26Plugin.Compiler
             var modsWithNoBundles = modExecutor
                             .ModifiedAssets
                             .Where(x => x.Bundles.Count == 0);
+
+         
+            
             // ------------------------------
             // For some reason, MMC mods do not ship with modified bundles indexes, we are going to have to fix that here
             // This takes a lot of resources and time.
@@ -201,6 +204,17 @@ namespace Madden26Plugin.Compiler
                             }
                         }
 
+                        foreach (var asset in modsWithNoBundles)
+                        {
+                            if (Guid.TryParse(asset.Name, out _))
+                            {
+                                foreach(var bundleId in bundles)
+                                {
+                                    asset.Bundles.Add(bundleId);
+                                }
+                            }
+                        }
+
                         bundles = bundles.Distinct().ToList();
 
                         // likely to be chunks
@@ -222,6 +236,10 @@ namespace Madden26Plugin.Compiler
                 }
             }
 
+            foreach (var modifiedChunk in modExecutor.ModifiedChunks)
+            {
+                modifiedChunk.Value.Bundles.Add(Fnv1.HashString("TocChunks"));
+            }
 
             // ------------------------------
             // Continue with modifying the game
@@ -424,6 +442,10 @@ namespace Madden26Plugin.Compiler
                                 casBundleEntry.bundleSizeInCas = (uint)obj.GetValue<uint>("size");
                                 casBundleEntry.bundleOffsetInCas = (uint)obj.GetValue<uint>("offset");
                             }
+                            else
+                            {
+                                throw new Exception($"Unknown Entry {entryIndex} found whilst attempting to modify casBundle {casBundle}");
+                            }
                         }
                     }
                 }
@@ -457,17 +479,23 @@ namespace Madden26Plugin.Compiler
                         entry.bundleOffsetInCas = (uint)nwCasBundle.Position;
                         nwCasBundle.Write(msNewBundle.ToArray());
                         entry.bundleSizeInCas = (uint)msNewBundle.Length;
+
+#if DEBUG
+                        DebugBytesToFileLogger.Instance.WriteAllBytes($"Bundle_{casBundle.BaseBundle.GetNameHash()}_Decompressed_New.bin", msNewBundle.ToArray(), "Bundles/Write", false);
+#endif
                     }
+
+
                 }
 
                 if (modifiedCasBundles.Count > 0)
                 {
-                    Madden26TOCFileWriter tOCFileWriter = new Madden26TOCFileWriter();
+                    Madden26TOCFileWriter tocFileWriter = new Madden26TOCFileWriter();
 
                     if (tocFile.CasBundles == null)
                         tocFile.CasBundles = new CASBundle[0];
 
-                    tOCFileWriter.Write(tocFile, false);
+                    tocFileWriter.Write(tocFile, false);
                 }
 
 

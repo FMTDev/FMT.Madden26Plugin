@@ -30,9 +30,10 @@ namespace Madden26Plugin.Textures
                     nw.Write((uint)texture.MipSizes[i]);
 
                 nw.Write((uint)texture.ChunkSize);
-                nw.Write((uint)texture.AssetNameHash);
-                nw.WriteNullTerminatedString(texture.TextureGroup);
                 nw.Write(texture.UnknownBytes[1]);
+                //nw.Write((uint)texture.AssetNameHash);
+                nw.WriteNullTerminatedString(texture.TextureGroup);
+                nw.Write(texture.UnknownBytes[2]);
             }
 
             var arrayOfBytes = memoryStream.ToArray();
