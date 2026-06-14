@@ -1,6 +1,7 @@
 ﻿using FMT.Core.Meshes;
 using FMT.FileTools;
 using FMT.PluginInterfaces;
+using FMT.ProfileSystem;
 
 namespace Madden26Plugin.Meshes.Readers
 {
@@ -46,7 +47,7 @@ namespace Madden26Plugin.Meshes.Readers
                 meshSetLod.adjacencyData = new byte[meshSetLod.AdjacencyBufferSize];
             }
 
-            meshSetLod.UnknownChunkPad = reader.ReadBytes(20);
+            meshSetLod.UnknownChunkPad = ProfileManager.Instance.Name == "Madden27" ? reader.ReadBytes(16) : reader.ReadBytes(20);
 
             meshSetLod.ChunkId = reader.ReadGuid();
             meshSetLod.inlineDataOffset = reader.ReadUInt32();

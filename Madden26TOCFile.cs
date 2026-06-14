@@ -186,7 +186,7 @@ namespace Madden26Plugin
 
                 for (int entryIndex = 0; entryIndex < bundle.EntriesCount; entryIndex++)
                 {
-                    bool hasCasIdentifier = bundle.Flags[entryIndex] == 128;
+                    bool hasCasIdentifier = bundle.Flags[entryIndex] == 128 || bundle.Flags[entryIndex] == 132;
                     if (hasCasIdentifier)
                     {
                         isInPatch = Convert.ToBoolean(nativeReader.ReadShort(Endian.Big)); // Patch

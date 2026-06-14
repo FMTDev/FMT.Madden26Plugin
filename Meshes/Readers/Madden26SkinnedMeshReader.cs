@@ -47,7 +47,7 @@ namespace Madden26Plugin.Meshes.Readers
             nativeReader.Position = positionBeforeMeshTypeRead;
             meshSet.UnknownBytes.Add(nativeReader.ReadBytes(8));
 
-            meshSet.boneCount = nativeReader.ReadUInt16LittleEndian();
+            meshSet.BoneCount = nativeReader.ReadUInt16LittleEndian();
             meshSet.CullBoxCount = nativeReader.ReadUInt16LittleEndian();
             nativeReader.ReadUInt16();
             if (meshSet.CullBoxCount != 0)

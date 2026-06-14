@@ -2,6 +2,7 @@
 using FMT.FileTools;
 using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Meshes;
+using FMT.ProfileSystem;
 
 namespace Madden26Plugin.Meshes.Readers
 {
@@ -28,7 +29,15 @@ namespace Madden26Plugin.Meshes.Readers
             section.StartIndex = nativeReader.ReadUInt32LittleEndian(); // 0
             section.VertexOffset = nativeReader.ReadUInt32LittleEndian(); // 0
             section.VertexCount = (uint)nativeReader.ReadUInt32LittleEndian(); // 3157
-            section.UnknownBytes.Add(nativeReader.ReadBytes(28));
+
+            if (ProfileManager.Instance.Name == "Madden27")
+            {
+                section.UnknownBytes.Add(nativeReader.ReadBytes(40));
+            }
+            else
+            {
+                section.UnknownBytes.Add(nativeReader.ReadBytes(28));
+            }
 
             section.TextureCoordinateRatios.Clear();
             for (int i = 0; i < 6; i++)

@@ -38,8 +38,9 @@ namespace Madden26Plugin.Cache
 
                 nativeWriter.Write(cacheHelpers.GetExeWriteTime());
 
-                nativeWriter.Write(assetManagementService.Bundles.Count);
-                foreach (BundleEntry bundle in assetManagementService.Bundles)
+                var distinctBundles = assetManagementService.Bundles.DistinctBy(x => x.NameHash).ToArray();
+                nativeWriter.Write(distinctBundles.Length);
+                foreach (BundleEntry bundle in distinctBundles)
                 {
                     nativeWriter.WriteUInt16((ushort)bundle.Name.Length, Endian.Little);
                     nativeWriter.WriteBytes(Encoding.UTF8.GetBytes(bundle.Name));
