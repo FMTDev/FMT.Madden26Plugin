@@ -20,8 +20,8 @@
 
   <ItemGroup>
     <PackageReference Include="FMT.Compilers" Version="2026.1.1" />
-    <PackageReference Include="FMT.FileTools" Version="2026.3.0" />
-	<PackageReference Include="FMT.Core" Version="2026.7.4" />
+    <PackageReference Include="FMT.FileTools" Version="2026.3.3" />
+	<PackageReference Include="FMT.Core" Version="2026.7.9" />
 
 	<PackageReference Include="HashDepot" Version="3.2.0" />
   </ItemGroup>
@@ -50,6 +50,11 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		<PackagePath>\</PackagePath>
 		<Pack>True</Pack>
+    </None>
+    <None Update="Madden27Profile.json">
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Pack>True</Pack>
     </None>
     <None Update="Madden26Profile.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

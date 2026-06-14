@@ -1,4 +1,5 @@
 ﻿using FMT.FileTools;
+using FMT.Hash;
 using FMT.Logging;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
@@ -68,6 +69,9 @@ namespace Madden26Plugin.Cache
                     return false; // Patching required, so ignore cache
 
                 logger.Log("Cache: Reading bundles");
+
+                var readBundles = new Dictionary<ulong, (string name, int sbId)>();
+
                 int count = 0;
                 // bundle count
                 count = nativeReader.ReadInt();
@@ -81,13 +85,21 @@ namespace Madden26Plugin.Cache
                     }
 
                     BundleEntry bE = new();
-                    var nameLength = nativeReader.ReadUShort();
+                    var nameLength = nativeReader.ReadUInt16();
                     bE.Name = Encoding.UTF8.GetString(nativeReader.ReadBytes(nameLength));
                     bE.SuperBundleId = nativeReader.ReadInt();
 
-                    if (assetManagementService != null)
-                        assetManagementService.Bundles.Add(bE);
+                    var hash = Fnv64.FNV64_String8_Lower(bE.Name);
+                    if (!readBundles.ContainsKey(hash))
+                    {
+                        readBundles.Add(hash, (bE.Name, bE.SuperBundleId));
+                    }
+                }
 
+                foreach (var kvp in readBundles)
+                {
+                    if (assetManagementService != null)
+                        assetManagementService.Bundles.Add(new BundleEntry() { Name = kvp.Value.name, SuperBundleId = kvp.Value.sbId });
                 }
 
                 logger.Log("Cache: Reading Ebx");

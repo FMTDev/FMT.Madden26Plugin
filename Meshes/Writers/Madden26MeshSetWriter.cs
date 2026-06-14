@@ -57,7 +57,7 @@ namespace Madden26Plugin.Meshes.Writers
             if (meshSet.Type == MeshType.MeshType_Skinned)
             {
                 writer.Write(meshSet.UnknownBytes[1]);
-                writer.WriteUInt16LittleEndian((ushort)meshSet.boneCount);
+                writer.WriteUInt16LittleEndian((ushort)meshSet.BoneCount);
                 writer.WriteUInt16LittleEndian((ushort)meshSet.CullBoxCount);
                 if (meshSet.CullBoxCount > 0)
                 {
