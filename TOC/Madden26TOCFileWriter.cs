@@ -5,7 +5,7 @@ using FMT.FileTools;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 
-namespace Madden26Plugin
+namespace Madden26Plugin.TOC
 {
     public sealed class Madden26TOCFileWriter : TOCFileWriter
     {
