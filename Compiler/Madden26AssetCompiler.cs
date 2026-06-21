@@ -14,6 +14,7 @@ using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 using Madden26Plugin.ThirdParty;
+using Madden26Plugin.TOC;
 using System.Runtime.InteropServices;
 
 namespace Madden26Plugin.Compiler
@@ -189,7 +190,7 @@ namespace Madden26Plugin.Compiler
                                 continue;
 
                             var bundleToSearchFor = asset.Name.Substring(0, asset.Name.LastIndexOf('/'));
-                            var tocBundleNames = tocFile.BundleEntries.Where(x => x.Name.Count(x => x == '/') >= 2).Select(x => x.Name.Substring(6, x.Name.LastIndexOf('/') - 6)).ToArray();
+                            var tocBundleNames = tocFile.BundleEntries.Where(x => x.Value.Name.Count(x => x == '/') >= 2).Select(x => x.Value.Name.Substring(6, x.Value.Name.LastIndexOf('/') - 6)).ToArray();
                             var findIndexOfEbx = Array.IndexOf(tocBundleNames, bundleToSearchFor);
                             if (findIndexOfEbx != -1)
                             {

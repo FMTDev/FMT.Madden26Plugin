@@ -5,6 +5,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
+using Madden26Plugin.TOC;
 
 namespace Madden26Plugin
 {
@@ -23,6 +24,8 @@ namespace Madden26Plugin
             }
         }
 
+        private IAssetManagementService assetManagementService => SingletonService.GetInstance<IAssetManagementService>();
+        
         private IFileSystemService fss => SingletonService.GetInstance<IFileSystemService>();
 
         public void LoadData(IEnumerable<string> superBundles, string folder = "native_data/")
@@ -55,20 +58,39 @@ namespace Madden26Plugin
                     tocFiles.Add(tocFile);
                 }
             }
-            
+
+
+            int numCompletedBundles = 0;
+            var logUpdate = new Action(() =>
+            {
+                if (assetManagementService != null)
+                {
+                    assetManagementService.Logger.Log($"Loading data from Cas [{Math.Round((double)numCompletedBundles / casBundles.Count * 100).ToString()}%]");
+                }
+            });
+
+            var allTasks = new List<Task>();
 
             foreach (var casBundle in casBundles)
             {
-                CASDataReader casDataLoader = new(tocFiles[casBundle.Value.Index]);
-                var filePath = SingletonService.GetInstance<IFileSystemService>().ResolvePath(casBundle.Key);
-                if (File.Exists(filePath))
+                var task = Task.Run(() =>
                 {
-                    using (var nr = new NativeReader(filePath))
+                    tocFiles[casBundle.Value.Index].DoLogging = false;
+                    CASDataReader casDataLoader = new(tocFiles[casBundle.Value.Index]);
+                    var filePath = SingletonService.GetInstance<IFileSystemService>().ResolvePath(casBundle.Key);
+                    if (File.Exists(filePath))
                     {
-                        casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
+                        using (var nr = new NativeReader(filePath))
+                        {
+                            casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
+                        }
                     }
-                }
+                }).ContinueWith((x) => { numCompletedBundles++; logUpdate(); });
+
+                allTasks.Add(task);
             }
+
+            Task.WaitAll(allTasks);
 
             foreach (var tocFile in tocFiles)
             {

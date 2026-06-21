@@ -8,7 +8,7 @@ using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 using System.Text;
 
-namespace Madden26Plugin
+namespace Madden26Plugin.TOC
 {
     public class Madden26TOCFile : TOCFile
     {
@@ -149,16 +149,28 @@ namespace Madden26Plugin
             if (assetManagementService != null && DoLogging)
                 assetManagementService.Logger.Log("Searching for CAS Data from " + FileLocation);
 
-            for (int i = 0; i < MetaData.BundleCount; i++)
+            var bundlesByOffset = Bundles.OrderBy(x => x.Offset).ToArray();
+            _ = bundlesByOffset;
+
+            if (BundleEntries.Count == 0)
             {
-                nativeReader.Position = (Bundles[i].Offset + 556);
+                return;
+            }
+
+            for (int i = 0; i < bundlesByOffset.Length; i++)
+            {
+#if DEBUG
+                var expectedPosition = (bundlesByOffset[i].Offset + 556);
+                if (nativeReader.Position != expectedPosition)
+                {
+
+                }
+#endif
+                nativeReader.Position = (bundlesByOffset[i].Offset + 556);
 
                 CASBundle bundle = new();
-                if (BundleEntries.Count == 0)
-                    continue;
-
-                bundle.BaseBundle = Bundles[i];
-                bundle.BaseEntry = BundleEntries[i];
+                bundle.BaseBundle = bundlesByOffset[i];
+                bundle.BaseEntry = BundleEntries[bundlesByOffset[i]];
 
                 long startPosition = nativeReader.Position;
                 bundle.unk1 = nativeReader.ReadInt(Endian.Big); // 0-4
