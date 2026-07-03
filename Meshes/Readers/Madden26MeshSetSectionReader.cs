@@ -30,7 +30,7 @@ namespace Madden26Plugin.Meshes.Readers
             section.VertexOffset = nativeReader.ReadUInt32LittleEndian(); // 0
             section.VertexCount = (uint)nativeReader.ReadUInt32LittleEndian(); // 3157
 
-            if (ProfileManager.Instance.Name == "Madden27")
+            if (ProfileManager.Instance.Name == "Madden27" || ProfileManager.Instance.Name == "CFB27")
             {
                 section.UnknownBytes.Add(nativeReader.ReadBytes(40));
             }
@@ -54,7 +54,14 @@ namespace Madden26Plugin.Meshes.Readers
             var lengthOfGeomDecl = positionAfterGeomDecl - positionBeforeGeomDecl;
 
             _ = nativeReader.Position;
-            section.UnknownBytes.Add(nativeReader.ReadBytes(68));
+            if (ProfileManager.Instance.Name == "CFB27")
+            {
+                section.UnknownBytes.Add(nativeReader.ReadBytes(56));
+            }
+            else
+            {
+                section.UnknownBytes.Add(nativeReader.ReadBytes(68));
+            }
             section.ReadBones(nativeReader, bonePositions);
         }
 

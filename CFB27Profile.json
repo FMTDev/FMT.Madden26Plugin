@@ -1,0 +1,51 @@
+{
+  "BasedOnProfile": "FC25PC",
+  "Name": "CFB27",
+  "DisplayName": "EA College Football 27 [PC]",
+  "RegistryPath": "SOFTWARE\\EA Sports\\EA SPORTS College Football 27\\",
+  "ExecutableName": "CollegeFB27",
+  "DataVersion": 20260814,
+  "CacheName": "CFB27pc",
+  "SupportedLauncherFileTypes": null,
+  "EditorScreen": "DefaultEditor",
+  "PluginNames": [ "Madden26" ],
+  "LegacyFileManager": "ChunkFileManager2022",
+  "AssetLoader": "Madden26AssetLoader",
+  "AssetCompiler": "Madden26AssetCompiler2025",
+  // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
+  "CacheWriter": "Madden26CacheWriter",
+  // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
+  "CacheReader": "Madden26CacheReader",
+  "TextureImporter": "TextureImporter",
+  "SDKFilename": "CFB27SDK",
+  "SDKAOBScan": null,
+  "Tools": {
+    "Internal": [
+      {
+        "Name": "Initfs Editor",
+        "Window": "InitfsEditor"
+      }
+    ],
+    "External": []
+  },
+  "CanImportMeshes": true,
+  "CanExportMeshes": true,
+  "EBXReader": "EbxReaderRiffByDescriptors",
+  "EBXWriter": "EbxWriterRiff",
+  "CanLaunchMods": true,
+  "MaxBufferSize": 65536,
+  "Sources": [
+    {
+      "Path": "Data",
+      "SubDirs": false
+    }
+  ],
+  "UseChunksInBundles": true,
+  "IconName": "CFB27Cover.jpg",
+  "SDKGeneratesUsingExeStringDump": true,
+  "CanUseModData": false,
+  "ForceUseModData": false,
+  "EADesktopCommandLineSettings": [
+    "user.gamecommandline.origin.ofr.50.0005821"
+  ]
+}

@@ -47,7 +47,7 @@ namespace Madden26Plugin.Meshes.Readers
                 meshSetLod.adjacencyData = new byte[meshSetLod.AdjacencyBufferSize];
             }
 
-            meshSetLod.UnknownChunkPad = ProfileManager.Instance.Name == "Madden27" ? reader.ReadBytes(16) : reader.ReadBytes(20);
+            meshSetLod.UnknownChunkPad = ProfileManager.Instance.Name == "Madden27" || ProfileManager.Instance.Name == "CFB27" ? reader.ReadBytes(16) : reader.ReadBytes(20);
 
             meshSetLod.ChunkId = reader.ReadGuid();
             meshSetLod.inlineDataOffset = reader.ReadUInt32();
