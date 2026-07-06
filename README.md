@@ -9,3 +9,6 @@ Uses Madden Modding Community anti tampering module (dpapi.dll and EAAntiCheat.e
 
 ## Status
 In Development
+
+## Code Architecture
+See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed file-by-file explanation of the codebase.
