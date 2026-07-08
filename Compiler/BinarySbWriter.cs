@@ -2,6 +2,7 @@
 using FMT.FileTools;
 using FMT.FileTools.Writers;
 using FMT.Hash;
+using System.IO;
 using System.Text;
 
 namespace Madden26Plugin.Compiler

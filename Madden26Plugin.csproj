@@ -1,10 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+	<UseWPF>true</UseWPF>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<Configurations>Debug;Release;FMT_PRO</Configurations>
+	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+	<GenerateTargetFrameworkAttribute>true</GenerateTargetFrameworkAttribute>
+	<AssemblyVersion>26.0.0.0</AssemblyVersion>
+	<FileVersion>26.11.9680.0</FileVersion>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +22,16 @@
     <EmbeddedResource Include="Launcher\CryptBase.dll" />
     <EmbeddedResource Include="Launcher\dpapi.dll" />
     <EmbeddedResource Include="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="RosterAnalyzer\**" />
+    <EmbeddedResource Remove="RosterAnalyzer\**" />
+    <None Remove="RosterAnalyzer\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -63,4 +79,23 @@
     </None>
   </ItemGroup>
 
+  <!-- Force WPF MarkupCompilePass1 to ensure .g.cs and .baml are generated -->
+  <PropertyGroup>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
+  </PropertyGroup>
+
+  <!-- Embed WPF-generated BAML as resources so LoadComponent() can find them -->
+  <Target Name="EmbedBamlResources" BeforeTargets="AssignTargetPaths" Condition="'$(UseWPF)'=='true'">
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)Roster\Views\RosterEditorWindow.baml">
+        <LogicalName>$(RootNamespace).Roster.Views.RosterEditorWindow.baml</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)Roster\Views\GenerateRosterDialog.baml">
+        <LogicalName>$(RootNamespace).Roster.Views.GenerateRosterDialog.baml</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)Roster\Views\BulkSwapDialog.baml">
+        <LogicalName>$(RootNamespace).Roster.Views.BulkSwapDialog.baml</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 </Project>

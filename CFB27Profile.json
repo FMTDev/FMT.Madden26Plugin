@@ -24,6 +24,10 @@
       {
         "Name": "Initfs Editor",
         "Window": "InitfsEditor"
+      },
+      {
+        "Name": "Roster Editor",
+        "Window": "RosterEditor"
       }
     ],
     "External": []

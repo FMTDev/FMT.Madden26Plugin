@@ -6,6 +6,7 @@ using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
+using System.IO;
 using System.Text;
 
 namespace Madden26Plugin.TOC
