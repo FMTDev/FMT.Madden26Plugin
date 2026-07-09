@@ -13,12 +13,19 @@
     <Compile Include="..\Roster\PlayerVisualRecipe.cs" Link="PlayerVisualRecipe.cs" />
     <Compile Include="..\Roster\RosterPlayerStats.cs" Link="RosterPlayerStats.cs" />
     <Compile Include="..\Roster\RosterData.cs" Link="RosterData.cs" />
+    <Compile Include="..\Roster\CFB27RosterWriter.cs" Link="CFB27RosterWriter.cs" />
+    <Compile Include="..\Roster\BinaryRecordHelper.cs" Link="BinaryRecordHelper.cs" />
+    <Compile Include="..\Roster\HairColorMapper.cs" Link="HairColorMapper.cs" />
     <!-- ComplexionPresetMapper and FaceTemplateMatcher excluded - require FMT assembly references -->
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="System.IO" />
     <Using Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetZip" Version="1.16.0" />
   </ItemGroup>
 
 </Project>

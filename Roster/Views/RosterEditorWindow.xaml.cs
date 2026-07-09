@@ -42,6 +42,7 @@ public partial class RosterEditorWindow : Window
         SkinToneCombo.ItemsSource = Enum.GetValues<SkinToneGroup>();
         HairColorCombo.ItemsSource = HairColorMapper.AllHairColorDescriptions;
         EyeColorCombo.ItemsSource = HairColorMapper.AllEyeColorDescriptions;
+        ConferenceCombo.ItemsSource = TeamMap.AllConferences;
     }
 
     private void StartAutoSaveTimer()
@@ -88,8 +89,14 @@ public partial class RosterEditorWindow : Window
         }
         catch
         {
-            // silent — don't spam the user with auto-save errors
         }
+    }
+
+    private static string GetSavesFolder()
+    {
+        var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var saves = Path.Combine(docs, "EA SPORTS College Football 27", "saves");
+        return Directory.Exists(saves) ? saves : docs;
     }
 
     private void OpenMenuItem_Click(object sender, RoutedEventArgs e)
@@ -98,7 +105,8 @@ public partial class RosterEditorWindow : Window
         {
             Title = "Open CFB27 Roster File",
             Filter = "All Files|*.*",
-            CheckFileExists = true
+            CheckFileExists = true,
+            InitialDirectory = GetSavesFolder()
         };
 
         if (dialog.ShowDialog(this) != true)
@@ -121,6 +129,7 @@ public partial class RosterEditorWindow : Window
             MarkSaved();
 
             ApplyFilter();
+            BuildTreeView();
 
             ExportJsonMenuItem.IsEnabled = true;
             ExportCsvMenuItem.IsEnabled = true;
@@ -145,6 +154,123 @@ public partial class RosterEditorWindow : Window
         {
             MessageBox.Show(this, $"Failed to load roster: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             StatusText.Text = "Ready";
+        }
+    }
+
+    private void BuildTreeView()
+    {
+        PlayerTreeView.Items.Clear();
+
+        var confGroups = _allPlayers
+            .GroupBy(p => p.Conference ?? "Unassigned")
+            .OrderBy(g => g.Key == "Unassigned" ? 1 : 0)
+            .ThenBy(g => g.Key);
+
+        foreach (var confGroup in confGroups)
+        {
+            var confItem = new TreeViewItem();
+            confItem.Header = $"{confGroup.Key} ({confGroup.Count()} players)";
+            confItem.Tag = confGroup.Key;
+            confItem.IsExpanded = true;
+            confItem.ContextMenu = CreateTeamAssignContextMenu("conference");
+
+            var teamGroups = confGroup
+                .GroupBy(p => p.Team ?? "Unassigned")
+                .OrderBy(g => g.Key == "Unassigned" ? 1 : 0)
+                .ThenBy(g => g.Key);
+
+            foreach (var teamGroup in teamGroups)
+            {
+                var teamItem = new TreeViewItem();
+                teamItem.Header = $"{teamGroup.Key} ({teamGroup.Count()} players)";
+                teamItem.Tag = teamGroup.Key;
+                teamItem.ContextMenu = CreateTeamAssignContextMenu("team");
+
+                var posGroups = teamGroup
+                    .GroupBy(p => p.Position ?? "?")
+                    .OrderBy(g => g.Key);
+
+                foreach (var posGroup in posGroups)
+                {
+                    var posItem = new TreeViewItem();
+                    posItem.Header = $"{posGroup.Key} ({posGroup.Count()} players)";
+                    posItem.Tag = posGroup.Key;
+                    posItem.ContextMenu = CreateTeamAssignContextMenu("position");
+
+                    foreach (var player in posGroup.OrderBy(p => p.DisplayName))
+                    {
+                        var playerItem = new TreeViewItem();
+                        playerItem.Header = player.DisplayName;
+                        playerItem.Tag = player;
+                        playerItem.ContextMenu = CreateTeamAssignContextMenu("player");
+                        posItem.Items.Add(playerItem);
+                    }
+
+                    teamItem.Items.Add(posItem);
+                }
+
+                confItem.Items.Add(teamItem);
+            }
+
+            PlayerTreeView.Items.Add(confItem);
+        }
+    }
+
+    private ContextMenu CreateTeamAssignContextMenu(string scope)
+    {
+        var menu = new ContextMenu();
+        menu.Tag = scope;
+        var item = new MenuItem { Header = "Assign Team..." };
+        item.Click += TeamAssignContextMenu_Click;
+        menu.Items.Add(item);
+        return menu;
+    }
+
+    private void TeamAssignContextMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem menuItem && menuItem.Parent is ContextMenu ctx && ctx.PlacementTarget is TreeViewItem treeItem)
+        {
+            var targets = new List<PlayerVisualRecipe>();
+            CollectPlayers(treeItem, targets);
+            if (targets.Count == 0) return;
+
+            var dialog = new AssignTeamDialog(targets) { Owner = this };
+            if (dialog.ShowDialog() == true)
+            {
+                foreach (var p in targets)
+                {
+                    p.Team = dialog.SelectedTeam;
+                    p.Conference = TeamMap.GetConference(dialog.SelectedTeam);
+                }
+                BuildTreeView();
+                MarkModified();
+                StatusText.Text = $"Assigned {targets.Count} player(s) to {dialog.SelectedTeam}";
+            }
+        }
+    }
+
+    private static void CollectPlayers(TreeViewItem item, List<PlayerVisualRecipe> players)
+    {
+        foreach (var child in item.Items)
+        {
+            if (child is TreeViewItem childItem)
+            {
+                if (childItem.Tag is PlayerVisualRecipe player)
+                    players.Add(player);
+                else
+                    CollectPlayers(childItem, players);
+            }
+        }
+    }
+
+    private void PlayerTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (e.NewValue is TreeViewItem item && item.Tag is PlayerVisualRecipe player)
+        {
+            ShowPlayerDetails(player);
+
+            if (!item.IsSelected)
+                item.IsSelected = true;
         }
     }
 
@@ -204,6 +330,11 @@ public partial class RosterEditorWindow : Window
         EyeColorCombo.Text = player.EyeColorDescription;
         PlayerIdText.Text = player.FullId ?? "";
 
+        TeamCombo.Text = player.Team ?? "Unassigned";
+        ConferenceCombo.Text = player.Conference ?? "Unassigned";
+
+        UpdateTeamComboItems();
+
         var bodyTypes = _allPlayers
             .Select(p => p.BodyType)
             .Where(b => !string.IsNullOrEmpty(b))
@@ -247,6 +378,66 @@ public partial class RosterEditorWindow : Window
         _isUpdatingUi = false;
     }
 
+    private void UpdateTeamComboItems()
+    {
+        var conf = ConferenceCombo.Text;
+        var teams = string.IsNullOrEmpty(conf) || conf == "Unassigned"
+            ? TeamMap.AllTeamNames
+            : TeamMap.GetTeams(conf);
+        TeamCombo.ItemsSource = teams;
+    }
+
+    private void TeamCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingUi || _currentPlayer == null) return;
+        var newTeam = TeamCombo.SelectedItem as string ?? TeamCombo.Text;
+        if (string.IsNullOrEmpty(newTeam) || newTeam == _currentPlayer.Team) return;
+        _currentPlayer.Team = newTeam;
+        var newConf = TeamMap.GetConference(newTeam);
+        _currentPlayer.Conference = newConf;
+        _isUpdatingUi = true;
+        ConferenceCombo.Text = newConf;
+        _isUpdatingUi = false;
+        BuildTreeView();
+        MarkModified();
+    }
+
+    private void ConferenceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isUpdatingUi || _currentPlayer == null) return;
+        var newConf = ConferenceCombo.SelectedItem as string ?? ConferenceCombo.Text;
+        if (string.IsNullOrEmpty(newConf) || newConf == _currentPlayer.Conference) return;
+        _currentPlayer.Conference = newConf;
+        if (newConf == "Unassigned")
+        {
+            _currentPlayer.Team = "Unassigned";
+            _isUpdatingUi = true;
+            TeamCombo.Text = "Unassigned";
+            _isUpdatingUi = false;
+        }
+        else
+        {
+            var teams = TeamMap.GetTeams(newConf);
+            if (teams.Length == 1)
+            {
+                _currentPlayer.Team = teams[0];
+                _isUpdatingUi = true;
+                TeamCombo.Text = teams[0];
+                _isUpdatingUi = false;
+            }
+            else if (!teams.Contains(_currentPlayer.Team))
+            {
+                _currentPlayer.Team = "Unassigned";
+                _isUpdatingUi = true;
+                TeamCombo.Text = "Unassigned";
+                _isUpdatingUi = false;
+            }
+        }
+        UpdateTeamComboItems();
+        BuildTreeView();
+        MarkModified();
+    }
+
     private void FirstNameBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_isUpdatingUi || _currentPlayer == null) return;
@@ -286,8 +477,11 @@ public partial class RosterEditorWindow : Window
         if (_isUpdatingUi || _currentPlayer == null) return;
         var newVal = PositionCombo.SelectedItem as string ?? PositionCombo.Text;
         if (string.IsNullOrEmpty(newVal)) return;
+        var oldPos = _currentPlayer.Position;
         BinaryRecordHelper.ReplacePosition(_currentPlayer, newVal);
         MarkModified();
+        if (oldPos != newVal)
+            BuildTreeView();
     }
 
     private void ClassYearCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -356,7 +550,6 @@ public partial class RosterEditorWindow : Window
         _currentPlayer.UniqueId = faceId;
         FaceIdBox.Text = faceId;
 
-        // Update skin tone, hair from the picked generic ID
         var tone = _faceMatcher.GetSkinTone(faceId);
         if (tone != SkinToneGroup.Unknown)
             _currentPlayer.SkinTone = tone;
@@ -509,7 +702,8 @@ public partial class RosterEditorWindow : Window
         {
             Title = "Save Roster As",
             Filter = "All Files|*.*",
-            FileName = Path.GetFileName(_currentFilePath) ?? "roster.bin"
+            InitialDirectory = GetSavesFolder(),
+            FileName = Path.GetFileName(_currentFilePath) ?? "ROSTER-TEST"
         };
 
         if (dialog.ShowDialog(this) != true)
@@ -527,6 +721,7 @@ public partial class RosterEditorWindow : Window
             _currentFilePath = path;
             MarkSaved();
             StatusText.Text = $"Saved to {Path.GetFileName(path)}";
+            MessageBox.Show(this, $"Roster saved successfully ({new FileInfo(path).Length:N0} bytes).", "Save Complete", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
@@ -581,7 +776,7 @@ public partial class RosterEditorWindow : Window
                 .OrderBy(s => s)
                 .ToList();
 
-            writer.WriteLine("FirstName,LastName,FullId,UniqueId,BodyType," + string.Join(",", slots));
+            writer.WriteLine("FirstName,LastName,FullId,UniqueId,BodyType,Team,Conference," + string.Join(",", slots));
 
             foreach (var player in _allPlayers)
             {
@@ -591,7 +786,9 @@ public partial class RosterEditorWindow : Window
                     CsvEscape(player.LastName),
                     CsvEscape(player.FullId),
                     CsvEscape(player.UniqueId),
-                    CsvEscape(player.BodyType)
+                    CsvEscape(player.BodyType),
+                    CsvEscape(player.Team),
+                    CsvEscape(player.Conference)
                 };
 
                 values.AddRange(slots.Select(s => CsvEscape(player.Equipment.GetValueOrDefault(s))));
@@ -643,8 +840,16 @@ public partial class RosterEditorWindow : Window
             .Select(g => $"{g.Key}: {g.Count()}")
             .ToList();
 
+        var teamCounts = _allPlayers
+            .GroupBy(p => p.Team ?? "Unassigned")
+            .OrderByDescending(g => g.Count())
+            .Take(10)
+            .Select(g => $"{g.Key}: {g.Count()}")
+            .ToList();
+
         var msg = $"Total Players: {_allPlayers.Count}\n" +
                   $"Stat Records: {_rosterData?.StatsRecords?.Count ?? 0}\n\n" +
+                  $"Top 10 Teams:\n  " + string.Join("\n  ", teamCounts) + "\n\n" +
                   $"Body Types:\n  " + string.Join("\n  ", bodyTypes) + "\n\n" +
                   $"Top 20 Equipment Items:\n  " + string.Join("\n  ", gearUsage);
 
@@ -672,7 +877,19 @@ public partial class RosterEditorWindow : Window
 
     private void CloneSelectedFaceMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        if (PlayerListBox.SelectedItem is not PlayerVisualRecipe player || !player.IsGenericPlayer)
+        PlayerVisualRecipe player = null;
+        if (PlayerTabControl.SelectedIndex == 0)
+        {
+            if (PlayerTreeView.SelectedItem is TreeViewItem item && item.Tag is PlayerVisualRecipe p)
+                player = p;
+        }
+        else
+        {
+            if (PlayerListBox.SelectedItem is PlayerVisualRecipe p)
+                player = p;
+        }
+
+        if (player == null || !player.IsGenericPlayer)
         {
             MessageBox.Show(this, "Select a player with a Generic_ face ID first.", "No Selection");
             return;
@@ -705,6 +922,7 @@ public partial class RosterEditorWindow : Window
         }
 
         ApplyFilter();
+        BuildTreeView();
         MarkModified();
         StatusText.Text = $"Cloned {success} faces{(fail > 0 ? $", {fail} failed" : "")}. Save roster + save fbmod in FMT.";
     }

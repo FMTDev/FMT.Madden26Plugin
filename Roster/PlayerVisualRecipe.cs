@@ -37,6 +37,8 @@ public class PlayerVisualRecipe
     public bool IsGenericPlayer => UniqueId?.StartsWith("Generic_") == true;
     public string DisplayName => $"{FirstName} {LastName}";
     public string DisplayHeight => HeightInches.HasValue ? $"{HeightInches.Value / 12}'{HeightInches.Value % 12}\"" : "";
+    public string Team { get; set; } = "Unassigned";
+    public string Conference { get; set; } = "Unassigned";
     public override string ToString() => DisplayName;
 }
 

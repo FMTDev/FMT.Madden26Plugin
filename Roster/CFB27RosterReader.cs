@@ -6,6 +6,27 @@ public class CFB27RosterReader
 {
     private const int SmallRecordThreshold = 100;
 
+    private static readonly uint[] Crc32Lookup = BuildCrc32Table();
+    private static uint[] BuildCrc32Table()
+    {
+        var table = new uint[256];
+        for (uint i = 0; i < 256; i++)
+        {
+            var c = i;
+            for (var j = 0; j < 8; j++)
+                c = (c & 1) != 0 ? 0xEDB88320 ^ (c >> 1) : c >> 1;
+            table[i] = c;
+        }
+        return table;
+    }
+    internal static uint ComputeCrc32(byte[] data)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in data)
+            crc = Crc32Lookup[(crc ^ b) & 0xFF] ^ (crc >> 8);
+        return crc ^ 0xFFFFFFFFu;
+    }
+
     public RosterData ReadRosterFile(string filePath)
     {
         var allBytes = File.ReadAllBytes(filePath);
@@ -31,6 +52,14 @@ public class CFB27RosterReader
         };
 
         var compressedStreams = ExtractRawGzipStreams(deflateData);
+
+        // Capture C2 trailing data after the last real gzip stream
+        var headerLen = result.ContainerHeader?.Length ?? 0;
+        var c2Start = compressedStreams.Count > 0
+            ? headerLen + compressedStreams.Sum(s => s.Length)
+            : GetC2DataStart(deflateData);
+        if (c2Start > 0 && c2Start < deflateData.Length)
+            result.C2TrailingData = deflateData[c2Start..];
 
         for (var i = 0; i < rawStreams.Count; i++)
         {
@@ -90,6 +119,35 @@ public class CFB27RosterReader
                 }
             }
 
+            // Verify this is a real gzip stream
+            byte[] decompressed;
+            try
+            {
+                using var msOut = new MemoryStream();
+                using var msIn = new MemoryStream(data[i..nextGzip]);
+                using var gzip = new GZipStream(msIn, CompressionMode.Decompress);
+                gzip.CopyTo(msOut);
+                decompressed = msOut.ToArray();
+            }
+            catch
+            {
+                // First false match in C2 data — stop here
+                return streams;
+            }
+
+            // Check if nextGzip starts another valid gzip or is a C2 false match
+            var nextIsValid = nextGzip < data.Length - 3 &&
+                data[nextGzip] == 0x1F && data[nextGzip + 1] == 0x8B && data[nextGzip + 2] == 0x08 &&
+                IsValidGzip(data, nextGzip);
+
+            // If next is NOT a valid gzip, we're at the last real stream — clip it
+            if (!nextIsValid)
+            {
+                var gzipEnd = FindGzipEnd(data, i, nextGzip, decompressed);
+                streams.Add(data[i..gzipEnd]);
+                return streams;
+            }
+
             streams.Add(data[i..nextGzip]);
             i = nextGzip - 1;
         }
@@ -114,22 +172,90 @@ public class CFB27RosterReader
                 }
             }
 
-            var gzipData = data[i..nextGzip];
+            byte[] decompressed;
             try
             {
                 using var msOut = new MemoryStream();
-                using var msIn = new MemoryStream(gzipData);
+                using var msIn = new MemoryStream(data[i..nextGzip]);
                 using var gzip = new GZipStream(msIn, CompressionMode.Decompress);
                 gzip.CopyTo(msOut);
-                records.Add(msOut.ToArray());
+                decompressed = msOut.ToArray();
             }
             catch
             {
+                return records;
+            }
+
+            records.Add(decompressed);
+
+            var nextIsValid = nextGzip < data.Length - 3 &&
+                data[nextGzip] == 0x1F && data[nextGzip + 1] == 0x8B && data[nextGzip + 2] == 0x08 &&
+                IsValidGzip(data, nextGzip);
+
+            if (!nextIsValid)
+            {
+                var gzipEnd = FindGzipEnd(data, i, nextGzip, decompressed);
+                i = gzipEnd - 1;
+                return records;
             }
 
             i = nextGzip - 1;
         }
         return records;
+    }
+
+    internal static bool IsValidGzip(byte[] data, int offset)
+    {
+        if (offset > data.Length - 10) return false;
+        var nextGzip = data.Length;
+        for (var j = offset + 3; j < data.Length - 3; j++)
+        {
+            if (data[j] == 0x1F && data[j + 1] == 0x8B && data[j + 2] == 0x08)
+            {
+                nextGzip = j;
+                break;
+            }
+        }
+        try
+        {
+            using var msOut = new MemoryStream();
+            using var msIn = new MemoryStream(data[offset..nextGzip]);
+            using var gzip = new GZipStream(msIn, CompressionMode.Decompress);
+            gzip.CopyTo(msOut);
+            return msOut.Length > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    internal static int FindGzipEnd(byte[] data, int streamStart, int searchEnd, byte[] decompressed)
+    {
+        var expectedCrc = ComputeCrc32(decompressed);
+        var expectedIsize = (uint)decompressed.Length;
+        for (var scan = searchEnd - 8; scan >= streamStart + 10; scan--)
+        {
+            var crc = (uint)(data[scan] | (data[scan + 1] << 8) | (data[scan + 2] << 16) | (data[scan + 3] << 24));
+            if (crc != expectedCrc) continue;
+            var isize = (uint)(data[scan + 4] | (data[scan + 5] << 8) | (data[scan + 6] << 16) | (data[scan + 7] << 24));
+            if (isize == expectedIsize)
+                return scan + 8;
+        }
+        return searchEnd;
+    }
+
+    internal static int GetC2DataStart(byte[] data)
+    {
+        for (var i = 23; i < data.Length - 3; i++)
+        {
+            if (data[i] != 0x1F || data[i + 1] != 0x8B || data[i + 2] != 0x08)
+                continue;
+
+            if (!IsValidGzip(data, i))
+                return i;
+        }
+        return data.Length;
     }
 
     private static readonly HashSet<string> KnownPositions = new(StringComparer.OrdinalIgnoreCase)

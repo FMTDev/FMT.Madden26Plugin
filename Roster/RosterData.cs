@@ -9,4 +9,5 @@ public class RosterData
     public byte[] RawDeflatedPayload { get; set; }
     public byte[] ContainerHeader { get; set; }
     public byte[] FbChunksHeader { get; set; }
+    public byte[] C2TrailingData { get; set; }
 }

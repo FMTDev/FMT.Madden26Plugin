@@ -35,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetZip" Version="1.16.0" />
     <PackageReference Include="FMT.Compilers" Version="2026.1.1" />
     <PackageReference Include="FMT.FileTools" Version="2026.3.3" />
 	<PackageReference Include="FMT.Core" Version="2026.8.1" />
