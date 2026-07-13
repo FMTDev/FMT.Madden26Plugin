@@ -205,12 +205,10 @@ namespace Madden26Plugin.TOC
                         catalogIndex = nativeReader.ReadInt(Endian.Big); // Catalog PersistedIndex Identifier
                         cas = Convert.ToByte(nativeReader.ReadShort(Endian.Big)); // Cas number
 
-                        if (!fss.CatalogsIndexed.ContainsKey(catalogIndex))
+                        if (!fss.CatalogsIndexed.TryGetValue(catalogIndex, out var catalogIndexedKVP))
                         {
                             continue;
                         }
-
-                        var catalogIndexedKVP = fss.CatalogsIndexed[catalogIndex];
                         var catalogIndexInt = fss.CatalogObjects.ToList().FindIndex(x => x.PersistentIndex.HasValue && x.PersistentIndex.Value == catalogIndex);
                         if (catalogIndexInt == -1)
                         {

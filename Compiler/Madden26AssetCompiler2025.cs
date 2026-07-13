@@ -264,13 +264,17 @@ namespace Madden26Plugin.Compiler
                     IAssetEntry entry = null;
 
                     // Detect Resource first (has same name as Ebx)
-                    if (@object.Key.StartsWith("RES") && ModExecutor.ModifiedRes.ContainsKey(@object.Value.ToString()))
-                        entry = ModExecutor.ModifiedRes[@object.Value.ToString()];
+                    if (@object.Key.StartsWith("RES") && ModExecutor.ModifiedRes.TryGetValue(@object.Value.ToString(), out IResourceAssetEntry resEntry))
+                    {
+                        entry = resEntry;
+                    }
                     // Detect Ebx
-                    else if (ModExecutor.ModifiedEbx.ContainsKey(@object.Value.ToString()))
-                        entry = ModExecutor.ModifiedEbx[@object.Value.ToString()];
-                    else if (ModExecutor.ModifiedChunks.ContainsKey(Guid.Parse(@object.Key)))
-                        entry = ModExecutor.ModifiedChunks[Guid.Parse(@object.Value.ToString())];
+                    else if (ModExecutor.ModifiedEbx.TryGetValue(@object.Value.ToString(), out IEbxAssetEntry ebxEntry))
+                    {
+                        entry = ebxEntry;
+                    }
+                    else if (ModExecutor.ModifiedChunks.TryGetValue(Guid.Parse(@object.Key), out IChunkAssetEntry chunkEntry))
+                        entry = chunkEntry;
 
                     if (@object.Value.Dictionary.ContainsKey("BundleHash") && !modifiedBundles.Contains(@object.Value.GetValue<int>("BundleHash")))
                         modifiedBundles.Add(@object.Value.GetValue<int>("BundleHash"));
@@ -328,10 +332,10 @@ namespace Madden26Plugin.Compiler
                     @object.Value.SetValue("modifiedByFMT", true);
 #endif
 
-                    if (!assetBundleToCAS.ContainsKey(casPath))
-                        assetBundleToCAS.Add(casPath, new List<(IAssetEntry, DbObject)>());
+                    if (!assetBundleToCAS.TryGetValue(casPath, out var list))
+                        assetBundleToCAS[casPath] = list = new List<(IAssetEntry, DbObject)>();
 
-                    assetBundleToCAS[casPath].Add((entry, @object.Value));
+                    list.Add((entry, @object.Value));
 
 
                     listOfModifiedAssets[entry] = true;
