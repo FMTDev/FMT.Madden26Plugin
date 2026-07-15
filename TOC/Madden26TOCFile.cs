@@ -198,6 +198,13 @@ namespace Madden26Plugin.TOC
 
                 for (int entryIndex = 0; entryIndex < bundle.EntriesCount; entryIndex++)
                 {
+#if DEBUG
+                    if (bundle.Flags[entryIndex] == 132 && entryIndex != 0)
+                    {
+
+                    }
+#endif
+
                     bool hasCasIdentifier = bundle.Flags[entryIndex] == 128 || bundle.Flags[entryIndex] == 132;
                     if (hasCasIdentifier)
                     {

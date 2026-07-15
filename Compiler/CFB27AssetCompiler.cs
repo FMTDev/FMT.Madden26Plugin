@@ -1,13 +1,8 @@
-﻿using FMT.Compilers;
-using FMT.Core;
-using FMT.Core.Models.Modding;
+﻿using FMT.Core.Models.Modding;
 using FMT.Core.Models.TOC;
-using FMT.Core.Resources;
 using FMT.Core.Writers;
 using FMT.Db;
-using FMT.Ebx;
 using FMT.FileTools;
-using FMT.Hash;
 using FMT.Logging;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
@@ -15,161 +10,32 @@ using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.AppInsights;
 using FMT.ServicesManagers.Interfaces;
-using Madden26Plugin.ThirdParty;
 using Madden26Plugin.TOC;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Madden26Plugin.Compiler
 {
-    public class Madden26AssetCompiler2025 : Frostbite2025AssetCompiler, IAssetCompiler
+    public class CFB27AssetCompiler : Madden26AssetCompiler2025, IAssetCompiler
     {
-        private IFileSystemService fss => SingletonService.GetInstance<IFileSystemService>();
-
-        private IAssetManagementService assetManagementService => SingletonService.GetInstance<IAssetManagementService>();
-
-        public override bool RequiresCacheToCompile => false;
-
-        /// <summary>
-        /// Ensures that the mod data directory exists, creating it if necessary.
-        /// </summary>
-        /// <remarks>This method verifies the existence of the mod data directory and creates it if it
-        /// does not exist.  The directory path is determined based on the file system service's base path and the mod
-        /// directory name.</remarks>
-        /// <param name="logger">The logger used to record messages during the operation.</param>
-        /// <param name="modExecutor">The mod executor providing context for the operation, including logging capabilities.</param>
-        /// <returns>A task that represents the asynchronous operation. The task result is <see langword="true"/> if the
-        /// operation completes successfully.</returns>
-        public override async Task<bool> PreCompile(ILogger logger, IModExecutor modExecutor)
-        {
-            new Madden26ModsCleanupFunctions().CleanUp();
-            return true;
-        }
-
         public override bool Compile(ILogger logger, IModExecutor modExecutor)
         {
-            this.ModExecutor = modExecutor;
-            logger.Log($"{nameof(Madden26AssetCompiler2025)} started");
-
-            // Change TOC File Type to Madden26TOCFile
-            fss.TOCFileType = typeof(Madden26TOCFile);
-            // Initialize SDK
-            TypeLibrary.Initialize();
-            FixModifiedAssetsWithoutBundles(logger, modExecutor);
-
-            var fs = SingletonService.GetInstance<IFileSystemService>();
-
-            // Make the game vanilla before compiling
-            new FileSystemGameUpdateManager(logger).MakeGameVanilla();
             var result = base.Compile(logger, modExecutor);
 
-            SingletonService.GetInstance<IAppInsightsService>()?.TrackEvent($"{nameof(Madden26AssetCompiler2025)}.{nameof(Compile)} Completed");
+            SingletonService.GetInstance<IAppInsightsService>()?.TrackEvent($"{nameof(CFB27AssetCompiler)} Completed");
+            FileLogger.WriteLine($"{nameof(CFB27AssetCompiler)} Completed");
 
             return result;
         }
-
-        /// <summary>
-        /// This is used to resolve issues from other mod tools where the mods come without bundle references.
-        /// </summary>
-        /// <param name="logger"></param>
-        /// <param name="modExecutor"></param>
-        private void FixModifiedAssetsWithoutBundles(ILogger logger, IModExecutor modExecutor)
-        {
-            var modsWithNoBundles = modExecutor
-                                        .ModifiedAssets
-                                        .Where(x => x.Bundles.Count == 0)
-                                        .ToArray();
-
-
-            var folder = "native_data/";
-            var superBundles = fss.SuperBundles;
-            // ------------------------------
-            // For some reason, MMC mods do not ship with modified bundles indexes, we are going to have to fix that here
-            // This takes a lot of resources and time.
-            // @todo: find a way to fix this
-            if (!modsWithNoBundles.Any())
-                return;
-
-
-            logger.Log($"Detected {modsWithNoBundles.Count()} modified files without Bundle Hash");
-
-            foreach (var sbName in superBundles)
-            {
-                var tocFileRAW = $"{folder}{sbName}.toc";
-                string tocFileLocation = fss.ResolvePath(tocFileRAW);
-                if (string.IsNullOrEmpty(tocFileLocation) || !File.Exists(tocFileLocation))
-                    continue;
-
-                {
-                    logger.Log($"Checking {tocFileRAW} for Bundles");
-
-                    // Load the Toc file in its entirity to check for names or sha1s
-                    Madden26TOCFile tocFile = new(tocFileRAW, false, false, false, -1, true);
-                    _ = tocFile;
-
-                    List<int> bundles = new List<int>();
-
-                    foreach (var asset in modsWithNoBundles)
-                    {
-                        if (Guid.TryParse(asset.Name, out _))
-                            continue;
-
-                        var bundleToSearchFor = asset.Name.Substring(0, asset.Name.LastIndexOf('/'));
-                        var tocBundleNames = tocFile.BundleEntries.Where(x => x.Value.Name.Count(x => x == '/') >= 2).Select(x => x.Value.Name.Substring(6, x.Value.Name.LastIndexOf('/') - 6)).ToArray();
-                        var findIndexOfEbx = Array.IndexOf(tocBundleNames, bundleToSearchFor);
-                        if (findIndexOfEbx != -1)
-                        {
-                            if (!modExecutor.ModifiedBundles.ContainsKey(tocFile.Bundles[findIndexOfEbx].GetNameHash()))
-                                modExecutor.ModifiedBundles.Add(tocFile.Bundles[findIndexOfEbx].GetNameHash(), new ModBundleInfo() { Name = tocFile.Bundles[findIndexOfEbx].GetNameHash() });
-
-                            var bundleId = tocFile.Bundles[findIndexOfEbx].GetNameHash();
-                            bundles.Add(bundleId);
-                            asset.Bundles.Add(bundleId);
-
-                            logger.Log($"Found bundles in {tocFileRAW}");
-                        }
-                    }
-
-                    // --- Assign all bundles to chunks. We have no other way? 
-                    foreach (var asset in modsWithNoBundles)
-                    {
-                        if (Guid.TryParse(asset.Name, out _))
-                        {
-                            foreach (var bundleId in bundles)
-                            {
-                                asset.Bundles.Add(bundleId);
-                            }
-                        }
-                    }
-
-                    bundles = bundles.Distinct().ToList();
-
-                    // likely to be chunks
-                    if (bundles.Any())
-                    {
-                        foreach (var unassigned in modExecutor
-                            .ModifiedAssets
-                            .Where(x => x.Bundles.Count == 0))
-                        {
-                            foreach (var bundleId in bundles.Distinct())
-                                unassigned.Bundles.Add(bundleId);
-                        }
-                    }
-
-                    tocFile.Dispose();
-                    tocFile = null;
-                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
-                }
-            }
-
-            foreach (var modifiedChunk in modExecutor.ModifiedChunks)
-            {
-                modifiedChunk.Value.Bundles.Add(Fnv1.HashString("TocChunks"));
-            }
-        }
-
         public override bool PostCompile(ILogger logger, IModExecutor modExecutor)
         {
+            var fss = SingletonService.GetInstance<IFileSystemService>();
+            if (fss == null)
+            {
+                throw new NullReferenceException($"{nameof(fss)} cannot be null.");
+            }
             // --------------------------------------------------------------------------------------------------------
             // Apply Anti-Cheat bypass
             // Deploy CryptBase.dll to the output folder
@@ -182,31 +48,11 @@ namespace Madden26Plugin.Compiler
                 File.Move(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe"), Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe.backup"));
 
             // Deploy the modified EAAntiCheat.GameServiceLauncher.exe to the output folder
-            DeployEmbeddedResource("EAAntiCheat.GameServiceLauncher.exe", Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe"));
+            DeployEmbeddedResource("Madden26Plugin.Launcher.CFB27.EAAntiCheat.GameServiceLauncher.exe", Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe"));
 
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
 
-            return base.PostCompile(logger, modExecutor);
-        }
-
-        private byte[] GetEmbeddedResourceBytes(string resourceName)
-        {
-            var resourceStream = EmbeddedResourceHelper.GetEmbeddedResourceByName(resourceName);
-            if (resourceStream != null)
-            {
-                using (var ms = new MemoryStream())
-                {
-                    resourceStream.CopyTo(ms);
-                    ms.Position = 0;
-                    return ms.ToArray();
-                }
-            }
-            return null;
-        }
-
-        protected void DeployEmbeddedResource(string resourceName, string outputPath)
-        {
-            File.WriteAllBytes(outputPath, GetEmbeddedResourceBytes(resourceName));
+            return true;
         }
 
         protected override bool WriteNewDataChangesToSuperBundles(ref Dictionary<IAssetEntry, bool> listOfModifiedAssets, string directory = "native_patch")
@@ -378,7 +224,7 @@ namespace Madden26Plugin.Compiler
                     }
                 }
 
-                Madden26TOCFileWriter writer = new();
+                Madden27TOCFileWriter writer = new();
                 writer.Write(toc, ModExecutor.UseModData);
 
 #if DEBUG
@@ -398,19 +244,5 @@ namespace Madden26Plugin.Compiler
 
             return true;
         }
-
-        protected override List<Guid> ModifyTOCChunks(string directory = "native_patch")
-        {
-            //return new List<Guid>();
-            return base.ModifyTOCChunks(directory);
-        }
-
-        public override Task<bool> OnProcessEnded(ILogger logger, IModExecutor modExecutor)
-        {
-            new Madden26ModsCleanupFunctions().CleanUp();
-
-            return Task.FromResult(true);
-        }
-
     }
 }

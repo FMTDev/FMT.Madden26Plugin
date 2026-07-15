@@ -11,7 +11,7 @@
   "PluginNames": [ "Madden26" ],
   "LegacyFileManager": "ChunkFileManager2022",
   "AssetLoader": "Madden26AssetLoader",
-  "AssetCompiler": "Madden26AssetCompiler2025",
+  "AssetCompiler": "Madden27AssetCompiler",
   // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
   "CacheWriter": "Madden26CacheWriter",
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
