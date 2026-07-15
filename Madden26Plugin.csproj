@@ -11,11 +11,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
     <None Remove="Launcher\dpapi.dll" />
     <None Remove="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
     <EmbeddedResource Include="Launcher\CryptBase.dll" />
     <EmbeddedResource Include="Launcher\dpapi.dll" />
     <EmbeddedResource Include="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
