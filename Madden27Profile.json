@@ -47,5 +47,6 @@
   "ForceUseModData": false,
   "EADesktopCommandLineSettings": [
     "user.gamecommandline.origin.ofr.50.0005821"
-  ]
+  ],
+  "ZstdVersion": "1.5.7"
 }

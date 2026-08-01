@@ -8,6 +8,7 @@ using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
+using FMT.ServicesManagers.AssetEntryServicing;
 using FMT.ServicesManagers.Interfaces;
 using Madden26Plugin.TOC;
 using System;
@@ -115,7 +116,7 @@ namespace Madden26Plugin.Compiler
                     if (@object.Value.Dictionary.ContainsKey("BundleHash") && !modifiedBundles.Contains(@object.Value.GetValue<int>("BundleHash")))
                         modifiedBundles.Add(@object.Value.GetValue<int>("BundleHash"));
 
-                    var casBundle = toc.CasBundles.FirstOrDefault(x => x.BaseEntry.NameHash == @object.Value.GetValue<int>("BundleHash"));
+                    var casBundle = toc.CasBundles.FirstOrDefault(x => SingletonService.GetInstance<IBundleEntryService>().GetNameHashUIntForBundleEntry(x.BaseEntry) == @object.Value.GetValue<int>("BundleHash"));
                     if (!modifiedCasBundles.Contains(casBundle))
                         modifiedCasBundles.Add(casBundle);
 

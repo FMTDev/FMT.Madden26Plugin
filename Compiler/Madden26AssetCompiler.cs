@@ -13,9 +13,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
-using Madden26Plugin.ThirdParty;
 using Madden26Plugin.TOC;
-using System.Runtime.InteropServices;
 
 namespace Madden26Plugin.Compiler
 {
@@ -277,7 +275,7 @@ namespace Madden26Plugin.Compiler
                             modifiedCasBundles.Add(casBundle);
 
                         tocFile.ShouldReadCASBundles = true;
-                        tocFile.ReadCasBundlesFromCasFiles(new[] { casBundle.BaseBundle.GetNameHash() });
+                        tocFile.ReadCasBundlesFromCasFiles(new HashSet<int> { casBundle.BaseBundle.GetNameHash() });
                         foreach (var t in tocFile.TOCObjectsByCasBundle)
                         {
                             foreach (DbObject ebx in t.Value.GetValue<DbObject>("ebx"))
@@ -676,120 +674,6 @@ namespace Madden26Plugin.Compiler
             File.WriteAllBytes(outputPath, GetEmbeddedResourceBytes(resourceName));
         }
 
-        public static ulong OodleCompress(byte[] buffer, Oodle.OodleFormat format, Oodle.OodleCompressionLevel compressionLevel, out byte[] compBuffer, out ushort compressCode, out bool uncompressed, int bufferSize = 262144)
-        {
-            uncompressed = false;
-            ArgumentNullException.ThrowIfNull(buffer, "buffer");
-            compBuffer = new byte[bufferSize];// ArrayPool<byte>.Shared.Rent(bufferSize);
-            compressCode = 6512;
-            switch (format)
-            {
-                case Oodle.OodleFormat.Kraken:
-                    compressCode = 4464;
-                    break;
-                case Oodle.OodleFormat.Leviathan:
-                    compressCode = 6512;
-                    break;
-                case Oodle.OodleFormat.Selkie:
-                    compressCode = 5488;
-                    break;
-            }
-            GCHandle gCHandle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-            try
-            {
-                GCHandle gCHandle2 = GCHandle.Alloc(compBuffer, GCHandleType.Pinned);
-                try
-                {
-                    ulong compressedSize = (ulong)Oodle.CompressWithCompLevel(format, gCHandle.AddrOfPinnedObject(), buffer.Length, gCHandle2.AddrOfPinnedObject(), compressionLevel);//, Oodle.GetOptions(format, compressionLevel));
-                    if (compressedSize > (ulong)buffer.Length)
-                    {
-                        uncompressed = true;
-                        compressedSize = 0uL;
-                    }
-
-                    return compressedSize;
-                }
-                finally
-                {
-                    gCHandle2.Free();
-                }
-            }
-            finally
-            {
-                gCHandle.Free();
-            }
-        }
-
-        public static byte[] CompressFile(
-            byte[] inData
-            , Texture texture = null
-            , ResourceType resType = ResourceType.Invalid
-            , Oodle.OodleFormat oodleFormat = Oodle.OodleFormat.Kraken
-            , Oodle.OodleCompressionLevel compressionLevel = Oodle.OodleCompressionLevel.OPTIMAL3
-            , uint offset = 0u
-            )
-        {
-            int maxBufferSize = 262144;
-            MemoryStream memoryStream = new();
-            FileWriter outputWriter = new(memoryStream);
-            FileReader inputReader = new(new MemoryStream(inData));
-            long remainingByteCount = inputReader.Length - inputReader.Position;
-            long totalBytesRead = 0L;
-            long totalBytesWritten = 0L;
-            while (remainingByteCount > 0)
-            {
-                int bufferSize = (int)((remainingByteCount > maxBufferSize) ? maxBufferSize : remainingByteCount);
-                byte[] bufferArray = inputReader.ReadBytes(bufferSize);
-                ushort compressCode = 0;
-                ulong compressedSize = 0uL;
-                byte[] compBuffer = null;
-                bool pooledBuffer = false;
-                try
-                {
-                    compressedSize = OodleCompress(bufferArray, oodleFormat, compressionLevel, out compBuffer, out compressCode, out _);
-                    compressCode |= (ushort)((compressedSize & 0xF0000) >> 16);
-                    switch (oodleFormat)
-                    {
-                        case Oodle.OodleFormat.Kraken:
-                            compressCode = 4464;
-                            break;
-                        case Oodle.OodleFormat.Leviathan:
-                            compressCode = 6512;
-                            break;
-                        case Oodle.OodleFormat.Selkie:
-                            compressCode = 5488;
-                            break;
-                    }
-                    outputWriter.WriteInt32BigEndian(bufferSize);
-                    outputWriter.WriteUInt16BigEndian(compressCode);
-                    outputWriter.WriteUInt16BigEndian((ushort)compressedSize);
-                    outputWriter.Write(compBuffer, 0, (int)compressedSize);
-                    remainingByteCount -= bufferSize;
-                    totalBytesRead += bufferSize;
-                    if (texture != null && texture.MipCount > 1)
-                    {
-                        if (totalBytesRead + offset == texture.MipSizes[0])
-                        {
-                            uint secondMipOffset = (texture.MipOffsets[2] = (uint)totalBytesWritten);
-                            texture.MipOffsets[1] = secondMipOffset;
-                        }
-                        else if (totalBytesRead + offset == texture.MipSizes[0] + texture.MipSizes[1])
-                        {
-                            texture.MipOffsets[2] = (uint)totalBytesWritten;
-                        }
-                    }
-                }
-                finally
-                {
-                    if (compBuffer != null && pooledBuffer)
-                    {
-                        //ArrayPool<byte>.Shared.Return(compBuffer);
-                        compBuffer = null;
-                    }
-                }
-            }
-            return memoryStream.ToArray();
-        }
     }
 
 
