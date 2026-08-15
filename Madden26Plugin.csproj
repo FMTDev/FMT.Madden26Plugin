@@ -14,11 +14,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
     <None Remove="Launcher\dpapi.dll" />
     <None Remove="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
     <EmbeddedResource Include="Launcher\CryptBase.dll" />
     <EmbeddedResource Include="Launcher\dpapi.dll" />
     <EmbeddedResource Include="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
@@ -42,9 +44,9 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetZip" Version="1.16.0" />
-    <PackageReference Include="FMT.Compilers" Version="2026.1.1" />
-    <PackageReference Include="FMT.FileTools" Version="2026.3.3" />
-	<PackageReference Include="FMT.Core" Version="2026.8.1" />
+    <PackageReference Include="FMT.Compilers" Version="2026.10.0" />
+    <PackageReference Include="FMT.FileTools" Version="2026.10.0" />
+	<PackageReference Include="FMT.Core" Version="2026.10.1" />
 
 	<PackageReference Include="HashDepot" Version="3.2.0" />
   </ItemGroup>

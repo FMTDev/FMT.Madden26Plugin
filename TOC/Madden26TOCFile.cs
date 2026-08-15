@@ -199,6 +199,13 @@ namespace Madden26Plugin.TOC
 
                 for (int entryIndex = 0; entryIndex < bundle.EntriesCount; entryIndex++)
                 {
+#if DEBUG
+                    if (bundle.Flags[entryIndex] == 132 && entryIndex != 0)
+                    {
+
+                    }
+#endif
+
                     bool hasCasIdentifier = bundle.Flags[entryIndex] == 128 || bundle.Flags[entryIndex] == 132;
                     if (hasCasIdentifier)
                     {
@@ -206,12 +213,10 @@ namespace Madden26Plugin.TOC
                         catalogIndex = nativeReader.ReadInt(Endian.Big); // Catalog PersistedIndex Identifier
                         cas = Convert.ToByte(nativeReader.ReadShort(Endian.Big)); // Cas number
 
-                        if (!fss.CatalogsIndexed.ContainsKey(catalogIndex))
+                        if (!fss.CatalogsIndexed.TryGetValue(catalogIndex, out var catalogIndexedKVP))
                         {
                             continue;
                         }
-
-                        var catalogIndexedKVP = fss.CatalogsIndexed[catalogIndex];
                         var catalogIndexInt = fss.CatalogObjects.ToList().FindIndex(x => x.PersistentIndex.HasValue && x.PersistentIndex.Value == catalogIndex);
                         if (catalogIndexInt == -1)
                         {

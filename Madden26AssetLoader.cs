@@ -46,12 +46,12 @@ namespace Madden26Plugin
                         {
                             var filePath = SingletonService.GetInstance<IFileSystemService>().GetFilePath(casBundle.Catalog, casBundle.Cas, casBundle.Patch);
                             _ = filePath;
-                            if (!casBundles.ContainsKey(filePath))
+                            if (!casBundles.TryGetValue(filePath, out var bundleEntry))
                             {
-                                casBundles.Add(filePath, new CasBundlesWithTocIndex(tocFiles.Count, new List<CASBundle>()));
+                                casBundles[filePath] = bundleEntry = new CasBundlesWithTocIndex(tocFiles.Count, new List<CASBundle>());
                             }
 
-                            casBundles[filePath].Bundles.Add(casBundle);
+                            bundleEntry.Bundles.Add(casBundle);
                         }
                     }
 

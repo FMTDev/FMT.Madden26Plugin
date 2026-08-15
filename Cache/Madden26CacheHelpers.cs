@@ -46,7 +46,7 @@ namespace Madden26Plugin.Cache
             if (!Directory.Exists(fss.BasePath))
                 return 0;
 
-            var exePath = Path.Combine(fss.BasePath, "Madden26.exe");
+            var exePath = Path.Combine(fss.BasePath, $"{ProfileManager.Instance.ExecutableName}.exe");
             if (File.Exists(exePath))
             {
                 return File.GetLastWriteTimeUtc(exePath).ToFileTimeUtc();

@@ -1,6 +1,7 @@
 ﻿using FMT.FileTools;
 using FMT.Logging;
 using FMT.PluginInterfaces;
+using FMT.ProfileSystem;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 
@@ -17,7 +18,7 @@ namespace Madden26Plugin.Textures
             var msCopy = new MemoryStream();
             nativeReader.BaseStream.CopyTo(msCopy);
             nativeReader.Position = 0;
-            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture.bin", msCopy.ToArray(), "Texture/Madden26/Read", false);
+            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture.bin", msCopy.ToArray(), $"Texture/{ProfileManager.ProfileName}/Read", false);
 #endif
             texture.UnknownBytes.Clear();
 

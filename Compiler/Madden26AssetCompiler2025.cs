@@ -14,8 +14,8 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.AppInsights;
+using FMT.ServicesManagers.AssetEntryServicing;
 using FMT.ServicesManagers.Interfaces;
-using Madden26Plugin.ThirdParty;
 using Madden26Plugin.TOC;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -29,6 +29,8 @@ namespace Madden26Plugin.Compiler
         private IAssetManagementService assetManagementService => SingletonService.GetInstance<IAssetManagementService>();
 
         public override bool RequiresCacheToCompile => false;
+
+        public virtual Type TOCFileWriterType => typeof(Madden26TOCFileWriter);
 
         /// <summary>
         /// Ensures that the mod data directory exists, creating it if necessary.
@@ -204,7 +206,7 @@ namespace Madden26Plugin.Compiler
             return null;
         }
 
-        private void DeployEmbeddedResource(string resourceName, string outputPath)
+        protected void DeployEmbeddedResource(string resourceName, string outputPath)
         {
             File.WriteAllBytes(outputPath, GetEmbeddedResourceBytes(resourceName));
         }
@@ -264,18 +266,22 @@ namespace Madden26Plugin.Compiler
                     IAssetEntry entry = null;
 
                     // Detect Resource first (has same name as Ebx)
-                    if (@object.Key.StartsWith("RES") && ModExecutor.ModifiedRes.ContainsKey(@object.Value.ToString()))
-                        entry = ModExecutor.ModifiedRes[@object.Value.ToString()];
+                    if (@object.Key.StartsWith("RES") && ModExecutor.ModifiedRes.TryGetValue(@object.Value.ToString(), out IResourceAssetEntry resEntry))
+                    {
+                        entry = resEntry;
+                    }
                     // Detect Ebx
-                    else if (ModExecutor.ModifiedEbx.ContainsKey(@object.Value.ToString()))
-                        entry = ModExecutor.ModifiedEbx[@object.Value.ToString()];
-                    else if (ModExecutor.ModifiedChunks.ContainsKey(Guid.Parse(@object.Key)))
-                        entry = ModExecutor.ModifiedChunks[Guid.Parse(@object.Value.ToString())];
+                    else if (ModExecutor.ModifiedEbx.TryGetValue(@object.Value.ToString(), out IEbxAssetEntry ebxEntry))
+                    {
+                        entry = ebxEntry;
+                    }
+                    else if (ModExecutor.ModifiedChunks.TryGetValue(Guid.Parse(@object.Key), out IChunkAssetEntry chunkEntry))
+                        entry = chunkEntry;
 
                     if (@object.Value.Dictionary.ContainsKey("BundleHash") && !modifiedBundles.Contains(@object.Value.GetValue<int>("BundleHash")))
                         modifiedBundles.Add(@object.Value.GetValue<int>("BundleHash"));
 
-                    var casBundle = toc.CasBundles.FirstOrDefault(x => x.BaseEntry.NameHash == @object.Value.GetValue<int>("BundleHash"));
+                    var casBundle = toc.CasBundles.FirstOrDefault(x => SingletonService.GetInstance<IBundleEntryService>().GetNameHashUIntForBundleEntry(x.BaseEntry) == @object.Value.GetValue<int>("BundleHash"));
                     if (!modifiedCasBundles.Contains(casBundle))
                         modifiedCasBundles.Add(casBundle);
 
@@ -328,10 +334,10 @@ namespace Madden26Plugin.Compiler
                     @object.Value.SetValue("modifiedByFMT", true);
 #endif
 
-                    if (!assetBundleToCAS.ContainsKey(casPath))
-                        assetBundleToCAS.Add(casPath, new List<(IAssetEntry, DbObject)>());
+                    if (!assetBundleToCAS.TryGetValue(casPath, out var list))
+                        assetBundleToCAS[casPath] = list = new List<(IAssetEntry, DbObject)>();
 
-                    assetBundleToCAS[casPath].Add((entry, @object.Value));
+                    list.Add((entry, @object.Value));
 
 
                     listOfModifiedAssets[entry] = true;
@@ -368,15 +374,14 @@ namespace Madden26Plugin.Compiler
 #if DEBUG
                         DebugBytesToFileLogger.Instance.WriteAllBytes($"Bundle_{casBundle.BaseBundle.GetNameHash()}_Decompressed.bin", msNewBundle.ToArray(), "Bundles/Write", false);
 #endif
-                        //entry.bundleOffsetInCas = (uint)nwCas.Position;
-                        //nwCas.Write(msNewBundle.ToArray());
-                        //entry.bundleSizeInCas = (uint)msNewBundle.Length;
+                        entry.bundleOffsetInCas = (uint)nwCas.Position;
+                        nwCas.Write(msNewBundle.ToArray());
+                        entry.bundleSizeInCas = (uint)msNewBundle.Length;
                     }
                 }
 
-                Madden26TOCFileWriter writer = new();
-                writer.Write(toc, ModExecutor.UseModData);
-
+                var tocFileWriterInst = Activator.CreateInstance(TOCFileWriterType);
+                ((TOCFileWriter)tocFileWriterInst).Write(toc, ModExecutor.UseModData);
 #if DEBUG
                 Madden26TOCFile tocFileDebug = new Madden26TOCFile(toc.FileLocation, false, false, false, -1, false);
 #endif
@@ -397,8 +402,75 @@ namespace Madden26Plugin.Compiler
 
         protected override List<Guid> ModifyTOCChunks(string directory = "native_patch")
         {
-            //return new List<Guid>();
-            return base.ModifyTOCChunks(directory);
+            var fss = SingletonService.GetInstance<IFileSystemService>();
+
+            List<Guid> result = new();
+
+            if (!ModExecutor.ModifiedChunks.Any())
+                return result;
+
+            if (!new FilePathResolvingService().ResolvableNativePaths.ContainsKey(directory))
+            {
+                result.AddRange(ModifyTOCChunks("native_data"));
+                return result;
+            }
+
+            try
+            {
+
+                int sbIndex = -1;
+                foreach (string sbKey in fss.SuperBundles)
+                {
+                    sbIndex++;
+                    string tocFileSbKey = sbKey;
+
+                    var pathToTOCFileRAW = $"{directory}/{tocFileSbKey}.toc";
+
+                    var pathToTOCFile = fss.ResolvePath(pathToTOCFileRAW, ModExecutor.UseModData && UseModDirectory, modDirectory: ModDirectory);
+
+                    if (string.IsNullOrEmpty(pathToTOCFile))
+                        continue;
+
+                    var tocFileObj = Activator.CreateInstance(fss.TOCFileType, pathToTOCFileRAW, false, false, ModExecutor.UseModData && UseModDirectory, sbIndex, true) as TOCFile;
+
+                    // read the changed toc file in ModData
+                    if (!tocFileObj.TocChunks.Any())
+                        continue;
+
+                    if (!tocFileObj.TocChunks.Any(x => x != null && ModExecutor.ModifiedChunks.ContainsKey(x.Id)))
+                        continue;
+
+                    bool foundBundle = false;
+                    foreach (var c in ModExecutor.ModifiedChunks.Values)
+                    {
+                        if (c.Bundles64.Contains(tocFileObj.ChunkDataBundleId64))
+                        {
+                            foundBundle = true;
+                            break;
+                        }
+
+                        if (c.Bundles.Contains(tocFileObj.ChunkDataBundleId))
+                        {
+                            foundBundle = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundBundle)
+                        continue;
+
+                    ProcessModifiedTOCChunksIntoTOCFile(result, pathToTOCFileRAW, pathToTOCFile, tocFileObj);
+                    TOCFile.RebuildTOCSignatureOnly(pathToTOCFile);
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            if (directory == "native_patch")
+                result.AddRange(ModifyTOCChunks("native_data"));
+
+            return result;
         }
 
         public override Task<bool> OnProcessEnded(ILogger logger, IModExecutor modExecutor)
@@ -410,3 +482,4 @@ namespace Madden26Plugin.Compiler
 
     }
 }
+ 

@@ -1,6 +1,7 @@
 ﻿using FMT.FileTools;
 using FMT.Logging;
 using FMT.PluginInterfaces;
+using FMT.ProfileSystem;
 
 namespace Madden26Plugin.Textures
 {
@@ -38,7 +39,7 @@ namespace Madden26Plugin.Textures
 
             var arrayOfBytes = memoryStream.ToArray();
 #if DEBUG
-            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture_Write.bin", arrayOfBytes, "Texture/Madden26/Write");
+            DebugBytesToFileLogger.Instance.WriteAllBytes("Texture_Write.bin", arrayOfBytes, $"Texture/{ProfileManager.ProfileName}/Write");
 #endif
 
             return arrayOfBytes;

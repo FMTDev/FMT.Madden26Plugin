@@ -13,9 +13,7 @@ using FMT.PluginInterfaces;
 using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
-using Madden26Plugin.ThirdParty;
 using Madden26Plugin.TOC;
-using System.Runtime.InteropServices;
 
 namespace Madden26Plugin.Compiler
 {
@@ -277,74 +275,52 @@ namespace Madden26Plugin.Compiler
                             modifiedCasBundles.Add(casBundle);
 
                         tocFile.ShouldReadCASBundles = true;
-                        tocFile.ReadCasBundlesFromCasFiles(new[] { casBundle.BaseBundle.GetNameHash() });
+                        tocFile.ReadCasBundlesFromCasFiles(new HashSet<int> { casBundle.BaseBundle.GetNameHash() });
                         foreach (var t in tocFile.TOCObjectsByCasBundle)
                         {
                             foreach (DbObject ebx in t.Value.GetValue<DbObject>("ebx"))
                             {
-                                if (modExecutor.ModifiedEbx.ContainsKey(ebx.GetValue<string>("name")))
+                                if (modExecutor.ModifiedEbx.TryGetValue(ebx.GetValue<string>("name"), out IEbxAssetEntry entry))
                                 {
-                                    IEbxAssetEntry entry = modExecutor.ModifiedEbx[ebx.GetValue<string>("name")];
                                     byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
                                     if (entry.ExtraData == null)
                                         entry.ExtraData = new AssetExtraData() { Cas = ebx.GetValue<ushort>("cas"), Catalog = ebx.GetValue<ushort>("catalog"), DataOffset = ebx.GetValue<uint>("offset") };
 
                                     var casPath = fss.GetCasPath(entry.ExtraData);
-                                    if (modifiedCas.ContainsKey(casPath))
-                                    {
-                                        if (!modifiedCas[casPath].Any(x => x.GetValue<string>("name") == ebx.GetValue<string>("name")))
-                                            modifiedCas[casPath].Add(ebx);
-                                    }
-                                    else
-                                    {
-                                        modifiedCas[casPath] = new List<DbObject>();
-                                        modifiedCas[casPath].Add(ebx);
-                                    }
+                                    if (!modifiedCas.TryGetValue(casPath, out var list))
+                                        modifiedCas[casPath] = list = new List<DbObject>();
+                                    if (!list.Any(x => x.GetValue<string>("name") == ebx.GetValue<string>("name")))
+                                        list.Add(ebx);
                                 }
                             }
 
                             foreach (DbObject res in t.Value.GetValue<DbObject>("res"))
                             {
-                                if (modExecutor.ModifiedRes.ContainsKey(res.GetValue<string>("name")))
+                                if (modExecutor.ModifiedRes.TryGetValue(res.GetValue<string>("name"), out var entry))
                                 {
-                                    var entry = modExecutor.ModifiedRes[res.GetValue<string>("name")];
                                     byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
                                     if (entry.ExtraData == null)
                                         entry.ExtraData = new AssetExtraData() { Cas = res.GetValue<ushort>("cas"), Catalog = res.GetValue<ushort>("catalog"), DataOffset = res.GetValue<uint>("offset") };
 
                                     var casPath = fss.GetCasPath(entry.ExtraData);
-                                    if (modifiedCas.ContainsKey(casPath))
-                                    {
-                                        modifiedCas[casPath].Add(res);
-                                    }
-                                    else
-                                    {
-                                        modifiedCas[casPath] = new List<DbObject>();
-                                        modifiedCas[casPath].Add(res);
-                                    }
+                                    if (!modifiedCas.TryGetValue(casPath, out var list))
+                                        modifiedCas[casPath] = list = new List<DbObject>();
+                                    list.Add(res);
                                 }
                             }
 
                             foreach (DbObject chunk in t.Value.GetValue<DbObject>("chunks"))
                             {
-                                if (modExecutor.ModifiedChunks.ContainsKey(chunk.GetValue<Guid>("id")))
+                                if (modExecutor.ModifiedChunks.TryGetValue(chunk.GetValue<Guid>("id"), out IChunkAssetEntry entry))
                                 {
-                                    IChunkAssetEntry entry = modExecutor.ModifiedChunks[chunk.GetValue<Guid>("id")];
                                     byte[] data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
                                     if (entry.ExtraData == null)
                                         entry.ExtraData = new AssetExtraData() { Cas = chunk.GetValue<ushort>("cas"), Catalog = chunk.GetValue<ushort>("catalog"), DataOffset = chunk.GetValue<uint>("offset") };
 
                                     var casPath = fss.GetCasPath(entry.ExtraData);
-                                    if (modifiedCas.ContainsKey(casPath))
-                                    {
-                                        modifiedCas[casPath].Add(chunk);
-                                    }
-                                    else
-                                    {
-                                        modifiedCas[casPath] = new List<DbObject>();
-                                        if (!modifiedCas[casPath].Any(x => x.GetValue<Guid>("id") == chunk.GetValue<Guid>("id")))
-                                            modifiedCas[casPath].Add(chunk);
-                                    }
+                                    if (!modifiedCas.TryGetValue(casPath, out var list))
+                                        modifiedCas[casPath] = list = new List<DbObject>();
+                                    list.Add(chunk);
 
                                 }
                             }
@@ -372,24 +348,23 @@ namespace Madden26Plugin.Compiler
                             if (obj.HasValue("name"))
                             {
                                 var name = obj.GetValue<string>("name");
-                                if (modExecutor.ModifiedRes.ContainsKey(name) && obj.HasValue("res"))
+                                if (modExecutor.ModifiedRes.TryGetValue(name, out IResourceAssetEntry resEntry) && obj.HasValue("res"))
                                 {
-                                    entry = modExecutor.ModifiedRes[name];
+                                    entry = resEntry;
                                     data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
                                 }
-                                else if (modExecutor.ModifiedEbx.ContainsKey(name) && obj.HasValue("ebx"))
+                                else if (modExecutor.ModifiedEbx.TryGetValue(name, out IEbxAssetEntry ebxEntry) && obj.HasValue("ebx"))
                                 {
-                                    entry = modExecutor.ModifiedEbx[name];
+                                    entry = ebxEntry;
                                     data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
                                 }
                             }
                             else if (obj.HasValue("id"))
                             {
                                 var id = obj.GetValue<Guid>("id");
-                                if (modExecutor.ModifiedChunks.ContainsKey(id))
+                                if (modExecutor.ModifiedChunks.TryGetValue(id, out IChunkAssetEntry chunkEntry))
                                 {
-                                    entry = modExecutor.ModifiedChunks[id];
-                                    data = entry.ModifiedEntry != null && entry.ModifiedEntry.Data != null ? entry.ModifiedEntry.Data : null;
+                                    entry = chunkEntry;
                                 }
                             }
 
@@ -402,8 +377,8 @@ namespace Madden26Plugin.Compiler
                                 var newOffset = bw.BaseStream.Length;
                                 bw.BaseStream.Position = bw.BaseStream.Length;
                                 bw.Write(data, 0, data.Length);
-                                if (!newBundleChanges.ContainsKey(obj.GetValue<string>("ParentCASBundleLocation")))
-                                    newBundleChanges.Add(obj.GetValue<string>("ParentCASBundleLocation"), new List<DbObject>());
+                                if (!newBundleChanges.TryGetValue(obj.GetValue<string>("ParentCASBundleLocation"), out var bundleList))
+                                    newBundleChanges[obj.GetValue<string>("ParentCASBundleLocation")] = bundleList = new List<DbObject>();
 
                                 obj.SetValue("offset", newOffset);
                                 obj.SetValue("size", data.Length);
@@ -419,7 +394,7 @@ namespace Madden26Plugin.Compiler
                                     obj.SetValue("logicalSize", chunkAssetEntry.LogicalSize);
                                 }
 
-                                newBundleChanges[obj.GetValue<string>("ParentCASBundleLocation")].Add(obj);
+                                bundleList.Add(obj);
 
                                 obj.SetValue("ModifiedByFMT", true);
                             }
@@ -597,12 +572,12 @@ namespace Madden26Plugin.Compiler
                             var patch = chunk.ExtraData.IsPatch;
                             var casPath = fss.ResolvePath(fss.GetFilePath(catalog, cas, patch), modExecutor.UseModData && UseModDirectory, modDirectory: ModDirectory);
 
-                            if (!CasPathsToChunks.ContainsKey(casPath))
-                                CasPathsToChunks.Add(casPath, new HashSet<IChunkAssetEntry>());
+                            if (!CasPathsToChunks.TryGetValue(casPath, out var chunks))
+                                CasPathsToChunks[casPath] = chunks = new HashSet<IChunkAssetEntry>();
 
                             modChunk.Value.SB_CAS_Size_Position = chunk.SB_CAS_Size_Position;
                             modChunk.Value.SB_CAS_Offset_Position = chunk.SB_CAS_Offset_Position;
-                            CasPathsToChunks[casPath].Add(modChunk.Value);
+                            chunks.Add(modChunk.Value);
                         }
                     }
                 }
@@ -699,120 +674,6 @@ namespace Madden26Plugin.Compiler
             File.WriteAllBytes(outputPath, GetEmbeddedResourceBytes(resourceName));
         }
 
-        public static ulong OodleCompress(byte[] buffer, Oodle.OodleFormat format, Oodle.OodleCompressionLevel compressionLevel, out byte[] compBuffer, out ushort compressCode, out bool uncompressed, int bufferSize = 262144)
-        {
-            uncompressed = false;
-            ArgumentNullException.ThrowIfNull(buffer, "buffer");
-            compBuffer = new byte[bufferSize];// ArrayPool<byte>.Shared.Rent(bufferSize);
-            compressCode = 6512;
-            switch (format)
-            {
-                case Oodle.OodleFormat.Kraken:
-                    compressCode = 4464;
-                    break;
-                case Oodle.OodleFormat.Leviathan:
-                    compressCode = 6512;
-                    break;
-                case Oodle.OodleFormat.Selkie:
-                    compressCode = 5488;
-                    break;
-            }
-            GCHandle gCHandle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-            try
-            {
-                GCHandle gCHandle2 = GCHandle.Alloc(compBuffer, GCHandleType.Pinned);
-                try
-                {
-                    ulong compressedSize = (ulong)Oodle.CompressWithCompLevel(format, gCHandle.AddrOfPinnedObject(), buffer.Length, gCHandle2.AddrOfPinnedObject(), compressionLevel);//, Oodle.GetOptions(format, compressionLevel));
-                    if (compressedSize > (ulong)buffer.Length)
-                    {
-                        uncompressed = true;
-                        compressedSize = 0uL;
-                    }
-
-                    return compressedSize;
-                }
-                finally
-                {
-                    gCHandle2.Free();
-                }
-            }
-            finally
-            {
-                gCHandle.Free();
-            }
-        }
-
-        public static byte[] CompressFile(
-            byte[] inData
-            , Texture texture = null
-            , ResourceType resType = ResourceType.Invalid
-            , Oodle.OodleFormat oodleFormat = Oodle.OodleFormat.Kraken
-            , Oodle.OodleCompressionLevel compressionLevel = Oodle.OodleCompressionLevel.OPTIMAL3
-            , uint offset = 0u
-            )
-        {
-            int maxBufferSize = 262144;
-            MemoryStream memoryStream = new();
-            FileWriter outputWriter = new(memoryStream);
-            FileReader inputReader = new(new MemoryStream(inData));
-            long remainingByteCount = inputReader.Length - inputReader.Position;
-            long totalBytesRead = 0L;
-            long totalBytesWritten = 0L;
-            while (remainingByteCount > 0)
-            {
-                int bufferSize = (int)((remainingByteCount > maxBufferSize) ? maxBufferSize : remainingByteCount);
-                byte[] bufferArray = inputReader.ReadBytes(bufferSize);
-                ushort compressCode = 0;
-                ulong compressedSize = 0uL;
-                byte[] compBuffer = null;
-                bool pooledBuffer = false;
-                try
-                {
-                    compressedSize = OodleCompress(bufferArray, oodleFormat, compressionLevel, out compBuffer, out compressCode, out _);
-                    compressCode |= (ushort)((compressedSize & 0xF0000) >> 16);
-                    switch (oodleFormat)
-                    {
-                        case Oodle.OodleFormat.Kraken:
-                            compressCode = 4464;
-                            break;
-                        case Oodle.OodleFormat.Leviathan:
-                            compressCode = 6512;
-                            break;
-                        case Oodle.OodleFormat.Selkie:
-                            compressCode = 5488;
-                            break;
-                    }
-                    outputWriter.WriteInt32BigEndian(bufferSize);
-                    outputWriter.WriteUInt16BigEndian(compressCode);
-                    outputWriter.WriteUInt16BigEndian((ushort)compressedSize);
-                    outputWriter.Write(compBuffer, 0, (int)compressedSize);
-                    remainingByteCount -= bufferSize;
-                    totalBytesRead += bufferSize;
-                    if (texture != null && texture.MipCount > 1)
-                    {
-                        if (totalBytesRead + offset == texture.MipSizes[0])
-                        {
-                            uint secondMipOffset = (texture.MipOffsets[2] = (uint)totalBytesWritten);
-                            texture.MipOffsets[1] = secondMipOffset;
-                        }
-                        else if (totalBytesRead + offset == texture.MipSizes[0] + texture.MipSizes[1])
-                        {
-                            texture.MipOffsets[2] = (uint)totalBytesWritten;
-                        }
-                    }
-                }
-                finally
-                {
-                    if (compBuffer != null && pooledBuffer)
-                    {
-                        //ArrayPool<byte>.Shared.Return(compBuffer);
-                        compBuffer = null;
-                    }
-                }
-            }
-            return memoryStream.ToArray();
-        }
     }
 
 

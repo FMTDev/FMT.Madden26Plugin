@@ -1,7 +1,7 @@
 {
   "BasedOnProfile": "FC25PC",
   "Name": "Madden26",
-  "DisplayName": "Madden 26 [PC]",
+  "DisplayName": "Madden NFL 26",
   "RegistryPath": "SOFTWARE\\EA Sports\\Madden NFL 26\\",
   "ExecutableName": "Madden26",
   "DataVersion": 20250814,
@@ -47,5 +47,6 @@
   "ForceUseModData": false,
   "EADesktopCommandLineSettings": [
     "user.gamecommandline.origin.ofr.50.0005821"
-  ]
+  ],
+  "ZstdVersion": "1.5.7"
 }

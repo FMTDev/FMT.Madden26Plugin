@@ -1,17 +1,17 @@
 {
   "BasedOnProfile": "FC25PC",
   "Name": "Madden27",
-  "DisplayName": "Madden 27 [PC]",
+  "DisplayName": "Madden NFL 27",
   "RegistryPath": "SOFTWARE\\EA Sports\\Madden NFL 27\\",
   "ExecutableName": "Madden27",
-  "DataVersion": 20260814,
+  "DataVersion": 20260813,
   "CacheName": "Madden27pc",
   "SupportedLauncherFileTypes": null,
   "EditorScreen": "DefaultEditor",
   "PluginNames": [ "Madden26" ],
   "LegacyFileManager": "ChunkFileManager2022",
   "AssetLoader": "Madden26AssetLoader",
-  "AssetCompiler": "Madden26AssetCompiler2025",
+  "AssetCompiler": "Madden27AssetCompiler",
   // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
   "CacheWriter": "Madden26CacheWriter",
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
@@ -47,5 +47,6 @@
   "ForceUseModData": false,
   "EADesktopCommandLineSettings": [
     "user.gamecommandline.origin.ofr.50.0005821"
-  ]
+  ],
+  "ZstdVersion": "1.5.7"
 }

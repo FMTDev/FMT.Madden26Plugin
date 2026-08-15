@@ -38,7 +38,7 @@ namespace Madden26Plugin.Cache
 
                 nativeWriter.Write(cacheHelpers.GetExeWriteTime());
 
-                var distinctBundles = assetManagementService.Bundles.DistinctBy(x => x.NameHash).ToArray();
+                var distinctBundles = assetManagementService.Bundles.DistinctBy(x => SingletonService.GetInstance<IBundleEntryService>().GetNameHashUIntForBundleEntry(x)).ToArray();
                 nativeWriter.Write(distinctBundles.Length);
                 foreach (BundleEntry bundle in distinctBundles)
                 {
