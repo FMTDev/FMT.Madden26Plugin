@@ -167,3 +167,49 @@ Port M27 player bodies/heads/textures ("the looks") into M20, at scale (many/all
 1. Receive user's exported M27 head set + M20 head set → build bone-name diff/remap script.
 2. Receive M20 `.ast` + AST editor format + M27 portrait export folder → build portrait ID allocator.
 3. Add missing DuplicateFaceMenuExtension flow to M20's DuplicationPlugin (port from MMC source, bypass DataVersion gate, verify against M20 SDK APIs incl. BundleRefTableResource).
+
+## Session 2026-08-15 (part 3): FMT Madden26Plugin — upstream merge + ProDotNetZip + deploy (ACTIVE — awaiting PaulV review + FMT in-game test)
+
+### Goal / current state
+- Plugin now ONE DLL (`Madden26Plugin.dll`) serving Madden 26, Madden 27, AND College Football 27 (CFB27). College stuff is STILL in the Madden26 plugin — no separate CFB plugin. `FC27Plugin.dll` = EA FC 27 soccer, unrelated.
+- User asked Paul to review the merged repo before we continue finishing roster display + the other bits.
+
+### FMT install locations
+- NEW FMT (v27): `C:\Users\Ninja\Documents\Mods\FMT_PROFMT_PRO.27.0.9716.24243` (FMT.exe 27.0.9716.24243). Note: the correct path is `FMT_PRO` + `FMT_PRO.27...` — there is NO `FMT_PRO\FMT_PRO\` subfolder.
+- OLD FMT (v26): `C:\Users\Ninja\Documents\Mods\FMT_PRO` (FMT.exe 26.11.9680.21261).
+- Profiles: `Plugins\Madden26Profile.json`, `Plugins\Madden27Profile.json` (both `PluginNames: ["Madden26"]`); `FrostbiteProfiles\CFB27Profile.json` (`AssetCompiler: CFB27AssetCompiler`, `SDKFilename: CFB27SDK`, `CanImportMeshes: true`, DataVersion 20260709). Madden27 profile: `Madden27AssetCompiler`, `Madden27SDK`, DataVersion 20260813. Madden27/CFB27 use `Madden27TOCFileWriter`.
+- FMT host ships NO DotNetZip.dll / Ionic.* (verified recursively in both installs) — plugin provides its own copy.
+
+### Repo / merge history
+- Local repo: `C:\Users\Ninja\Source\Repos\FMT.Madden26Plugin`. Remotes: `origin`/`fork` = DarthNinja0/FMT.Madden26Plugin, `upstream` = FMTDev/FMT.Madden26Plugin (added this session).
+- Upstream `main` = f8c1149 (2026-08-01, "Update with latest Nuget Packages and support latest FMT"). Local `main` had only merged through upstream 2026-07-03.
+- **Local-only commits NOT in upstream** (2026-07-08/09): the entire Roster tooling — `Roster/CyberfaceCloner.cs`, `RosterTool.cs`, `CFB27RosterReader.cs`, `CFB27RosterWriter.cs` (uses `Ionic.Zlib` → DotNetZip), `ComplexionPresetMapper.cs`, `FaceTemplateMatcher.cs`, `HairColorMapper.cs`, `TeamMap.cs`/`On3TeamMap.cs`/`SidearmTeamMap.cs`, scrapers (NCAAStats/On3/SidearmSports), `Roster/Views/*` (RosterEditorWindow, GenerateRosterDialog, BulkSwapDialog, AssignTeamDialog).
+- Commits this session: d843c33 (save uncommitted local work pre-merge), 9d605aa (merge upstream), e6b2bdf (ProDotNetZip swap), 031761d (README status). Pushed to fork: `31ca16b..e6b2bdf`, then `e6b2bdf..031761d`.
+
+### Merge conflict (csproj only) — resolution kept
+- Local WPF setup kept: `net10.0-windows`, `UseWPF`, AssemblyVersion/FileVersion, `CopyLocalLockFileAssemblies`, RosterAnalyzer/Tools/TestDeflate csproj exclusions, `EmbedBamlResources` target (needed for Roster WPF windows).
+- Upstream packages adopted: FMT.Compilers 2026.10.0, FMT.FileTools 2026.10.0, FMT.Core 2026.10.1.
+- Added upstream's `Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe` as embedded resource.
+- Build: `dotnet build Madden26Plugin.csproj -c FMT_PRO` → `bin\FMT_PRO\net10.0-windows\Madden26Plugin.dll` (840,192 B). Only warnings: CA2200 (pre-existing).
+
+### DotNetZip -> ProDotNetZip swap (DONE — no longer blocked)
+- ProDotNetZip **1.20.0** (nuget.org, drop-in: keeps `Ionic.Zip`/`Ionic.Zlib` namespaces) replaces DotNetZip 1.16.0 → NU1903/CVE-2024-48510 warning gone.
+- Why safe: FMT host ships no DotNetZip (no shadow/collision risk); only usage is `CFB27RosterWriter.cs:119` `Ionic.Zlib.GZipStream` (safe compress/decompress path — never the vulnerable `ZipEntry.Extract`).
+- Deployed: `Madden26Plugin.dll` + **`ProDotNetZip.dll`** (312,320 B) to `...\FMT_PROFMT_PRO.27.0.9716.24243\Plugins\`. IMPORTANT: ProDotNetZip must sit NEXT TO the plugin (host doesn't provide it). Original shipped DLL backed up as `Madden26Plugin.dll.upstream.bak` (648,704 B) in same folder.
+
+### Verification
+- ilspycmd correct syntax: `ilspycmd -l c <dll>` lists classes (NOT `-t -l`). Confirmed deployed DLL contains BOTH roster classes (CyberfaceCloner, RosterEditorWindow, RosterEditorPluginTool, all scrapers/dialogs) AND all 3 compilers (Madden26AssetCompiler2025, Madden27AssetCompiler, CFB27AssetCompiler).
+
+### In-game test (user, after deploy)
+- FMT loads the plugin cleanly with new FMT v27. "Duplicate faces" flow was NOT in-game tested (still incomplete — see below). User will have Paul review repo before we continue.
+
+### Known incomplete (documented in README, commit 031761d)
+- **Eye color cloning is a stub**: `CyberfaceCloner.ApplyEyeColor` (`Roster/CyberfaceCloner.cs:86-99`) does nothing — cloned faces inherit source template eye color. Plan (in code comment): read target eye recipe EBX at `ContentShared/content/characters/HS/HS_common/HS_eye_color/{recipe}`, extract file/class GUIDs, build External reference object via reflection, `ComplexionPresetMapper.SetFieldValue(rootObj, "EyeColorRecipe", ref)`.
+- Face cloning verified in-editor only; output `.fbmod` not yet tested in-game.
+- CFB27 roster container writing experimental (hash algorithm not fully reversed — see commit history 31ca16b/b457637).
+
+### Resume checklist
+1. Get PaulV's review feedback on merged repo.
+2. Finish making all roster info display properly (RosterEditorWindow).
+3. Possibly finish eye color cloning + in-game verify cloned faces.
+4. Long-term: CFB27 roster container hash reversal (from earlier notes) if needed for in-game roster acceptance.
