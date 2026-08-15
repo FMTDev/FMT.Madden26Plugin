@@ -8,7 +8,27 @@ Uses Madden Modding Community anti tampering module (dpapi.dll and EAAntiCheat.e
 **BE AWARE: This module may trigger antivirus software due to its nature of bypassing anti tampering mechanisms. Use at your own risk.**
 
 ## Status
-In Development
+
+In Development. Plugin loads in FMT and supports editing Madden 26, Madden 27 and College Football 27 (CFB27). Newer features (Roster Editor, face cloning) are CFB27-focused.
+
+### Feature Status
+
+**Working**
+- Load/save CFB27 roster containers; export to JSON and CSV
+- Player editor: browse + search tabs, names, height, weight, jersey number, equipment slots, face ID
+- Bulk swap equipment across players
+- Assign teams (TeamMap / On3TeamMap / SidearmTeamMap)
+- Generate roster from NCAA / On3 / Sidearm Sports websites (scrapers + preview + manual adjust)
+- Face template matching and hair color mapping for generated players
+- Clone face to Unique:
+  - Clone selected face to a Unique_ template, or clone all Generic_ faces at once
+  - Creates a new player recipe EBX + its `_playerhead_brt` entry in FMT's asset manager
+  - Applies the matched **hair** color recipe (root/tip colors to hair, eyebrow, beard)
+
+**Known Incomplete / Not Working**
+- **Eye color cloning is not applied.** Cloned faces inherit the source template's eye color (`ApplyEyeColor` is stubbed out in `Roster/CyberfaceCloner.cs`). Plan: read the target eye recipe EBX, extract its file/class GUIDs, build an external reference object, and set it via `ComplexionPresetMapper.SetFieldValue`.
+- Face cloning has not been verified in-game end-to-end (works in-editor, output `.fbmod` not yet tested inside the game).
+- Auto-generated CFB27 roster container writing is experimental — saved rosters may be rejected by the game until the container hash algorithm is fully reversed (see commit history on roster hash investigation).
 
 ## Code Architecture
 See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed file-by-file explanation of the codebase.
