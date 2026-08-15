@@ -32,6 +32,12 @@
     <Compile Remove="RosterAnalyzer\**" />
     <EmbeddedResource Remove="RosterAnalyzer\**" />
     <None Remove="RosterAnalyzer\**" />
+
+    <Compile Remove="Tools\**" />
+    <Compile Remove="Launcher\*.cs" />
+    <Compile Remove="TestDeflate.cs" />
+    <EmbeddedResource Remove="Tools\**" />
+    <None Remove="Tools\**" />
   </ItemGroup>
 
   <ItemGroup>
