@@ -34,7 +34,7 @@
   },
   "CanImportMeshes": true,
   "CanExportMeshes": true,
-  "EBXReader": "EbxReaderRiffByDescriptors",
+  "EBXReader": "EbxReaderRiff",
   "EBXWriter": "EbxWriterRiff",
   "CanLaunchMods": true,
   "MaxBufferSize": 65536,
