@@ -35,6 +35,10 @@
     <EmbeddedResource Remove="RosterAnalyzer\**" />
     <None Remove="RosterAnalyzer\**" />
 
+    <Compile Remove="m27converter\**" />
+    <EmbeddedResource Remove="m27converter\**" />
+    <None Remove="m27converter\**" />
+
     <Compile Remove="Tools\**" />
     <Compile Remove="Launcher\*.cs" />
     <Compile Remove="TestDeflate.cs" />
@@ -47,6 +51,7 @@
     <PackageReference Include="FMT.Compilers" Version="2026.10.0" />
     <PackageReference Include="FMT.FileTools" Version="2026.10.0" />
 	<PackageReference Include="FMT.Core" Version="2026.10.1" />
+	<PackageReference Include="FMT.Db" Version="2026.1.0" />
 
 	<PackageReference Include="HashDepot" Version="3.2.0" />
   </ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using FMT.FileTools;
 using FMT.Logging;
+using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
 using FMT.ProfileSystem;
 using FMT.ServicesManagers;
@@ -56,7 +57,38 @@ namespace Madden26Plugin.Textures
                 assetManagementService.Logger.Log($"Texture: Loading ChunkId: {texture.ChunkId}");
 
             texture.ChunkEntry = assetManagementService.GetChunkEntry(texture.ChunkId);
-            texture.Data = assetManagementService.GetChunk(texture.ChunkEntry).ToArray();
+            if (texture.ChunkEntry == null)
+            {
+                if (M27ChunkResolver.IsPlaceholderChunkId(texture.ChunkId))
+                {
+                    if (assetManagementService.Logger != null)
+                        assetManagementService.Logger.Log($"Texture: Chunk {texture.ChunkId} is a placeholder chunk id with no chunk data. Allocating empty data buffer for texture importer.");
+
+                    int bufferSize = (int)texture.ChunkSize;
+                    if (bufferSize <= 0)
+                    {
+                        for (int i = 0; i < texture.MipSizes.Length; i++)
+                            bufferSize += (int)texture.MipSizes[i];
+                    }
+                    if (bufferSize <= 0)
+                        bufferSize = 1;
+
+                    texture.Data = new byte[bufferSize];
+                    return;
+                }
+
+                if (assetManagementService.Logger != null)
+                    assetManagementService.Logger.Log($"Texture: Chunk {texture.ChunkId} not found in Madden NFL 26, attempting to resolve from Madden NFL 27 game data.");
+                if (!M27ChunkResolver.TryResolve(assetManagementService, texture.ChunkId, out ChunkAssetEntry resolvedChunkEntry, out string resolveError))
+                    throw new Exception($"Unable to locate chunk {texture.ChunkId} in the Madden NFL 26 or Madden NFL 27 game data. {resolveError}");
+                texture.ChunkEntry = resolvedChunkEntry;
+                texture.Data = resolvedChunkEntry.ModifiedEntry.Data;
+            }
+            else
+            {
+                texture.Data = assetManagementService.GetChunk(texture.ChunkEntry).ToArray();
+            }
         }
+
     }
 }
