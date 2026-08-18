@@ -1,0 +1,87 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Configurations>Debug;Release;FMT_PRO</Configurations>
+	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+	<GenerateTargetFrameworkAttribute>true</GenerateTargetFrameworkAttribute>
+	<AssemblyVersion>26.0.0.0</AssemblyVersion>
+	<FileVersion>26.11.9680.0</FileVersion>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
+    <None Remove="Launcher\dpapi.dll" />
+    <None Remove="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\CFB27Profile.json" Link="CFB27Profile.json" />
+    <Content Include="..\..\Madden26Profile.json" Link="Madden26Profile.json" />
+    <Content Include="..\..\Madden27Profile.json" Link="Madden27Profile.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
+    <EmbeddedResource Include="Launcher\CryptBase.dll" />
+    <EmbeddedResource Include="Launcher\dpapi.dll" />
+    <EmbeddedResource Include="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  
+  <ItemGroup>
+    <PackageReference Include="ProDotNetZip" Version="1.20.0" />
+    <PackageReference Include="FMT.Compilers" Version="2026.10.0" />
+    <PackageReference Include="FMT.FileTools" Version="2026.10.0" />
+	<PackageReference Include="FMT.Core" Version="2026.10.1" />
+	<PackageReference Include="FMT.Db" Version="2026.1.0" />
+
+	<PackageReference Include="HashDepot" Version="3.2.0" />
+  </ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugSymbols>False</DebugSymbols>
+		<DebugType>None</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='FMT_PRO'">
+	  <DebugSymbols>False</DebugSymbols>
+	  <DebugType>None</DebugType>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <None Update="FMTIcon24.png">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+    <None Update="Madden26Cover.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<PackagePath>\</PackagePath>
+		<Pack>True</Pack>
+    </None>
+    <None Update="Madden27Profile.json">
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Pack>True</Pack>
+    </None>
+    <None Update="Madden26Profile.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<PackagePath>\</PackagePath>
+		<Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+  <!-- Force WPF MarkupCompilePass1 to ensure .g.cs and .baml are generated -->
+  <PropertyGroup>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
+  </PropertyGroup>
+
+  
+</Project>

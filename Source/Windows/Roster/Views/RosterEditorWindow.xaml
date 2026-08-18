@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="CFB27 Roster Editor"
         Width="1200" Height="800"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        ThemeMode="Dark">
     <Grid Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
