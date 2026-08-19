@@ -1,0 +1,220 @@
+<Window x:Class="Madden26Plugin.Roster.Views.RosterEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CFB27 Roster Editor"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterOwner"
+        ThemeMode="Dark">
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem x:Name="OpenMenuItem" Header="_Open Roster..." Click="OpenMenuItem_Click"/>
+                <Separator/>
+                <MenuItem x:Name="ExportJsonMenuItem" Header="_Export as JSON..." Click="ExportJsonMenuItem_Click" IsEnabled="False"/>
+                <MenuItem x:Name="ExportCsvMenuItem" Header="Export as _CSV..." Click="ExportCsvMenuItem_Click" IsEnabled="False"/>
+                <Separator/>
+                <MenuItem x:Name="SaveMenuItem" Header="_Save" Click="SaveMenuItem_Click" IsEnabled="False" InputGestureText="Ctrl+S"/>
+                <MenuItem x:Name="SaveAsMenuItem" Header="Save _As..." Click="SaveAsMenuItem_Click" IsEnabled="False"/>
+                <Separator/>
+                <MenuItem x:Name="CloseMenuItem" Header="_Close" Click="CloseMenuItem_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem x:Name="GenerateMenuItem" Header="_Generate from NCAA Website..." Click="GenerateMenuItem_Click" IsEnabled="False"/>
+                <Separator/>
+                <MenuItem Header="_Faces">
+                    <MenuItem x:Name="CloneSelectedFaceMenuItem" Header="Clone _Selected Face to Unique" Click="CloneSelectedFaceMenuItem_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="CloneAllFacesMenuItem" Header="Clone _All Generic to Unique" Click="CloneAllFacesMenuItem_Click" IsEnabled="False"/>
+                    <Separator/>
+                    <MenuItem x:Name="BuildToneMapMenuItem" Header="_Build Face Tone Map (FMT)" Click="BuildToneMapMenuItem_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="LoadToneMapMenuItem" Header="_Load Face Tone Map from File..." Click="LoadToneMapMenuItem_Click" IsEnabled="False"/>
+                    <MenuItem x:Name="ExportToneMapMenuItem" Header="_Export Face Tone Map..." Click="ExportToneMapMenuItem_Click" IsEnabled="False"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem x:Name="BulkSwapMenuItem" Header="_Bulk Swap Equipment..." Click="BulkSwapMenuItem_Click" IsEnabled="False"/>
+                <MenuItem x:Name="SummaryMenuItem" Header="_Roster Summary" Click="SummaryMenuItem_Click" IsEnabled="False"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="350"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border BorderBrush="#ccc" BorderThickness="1" CornerRadius="4" Padding="8">
+                <TabControl x:Name="PlayerTabControl">
+                    <TabItem Header="Browse">
+                        <TreeView x:Name="PlayerTreeView"
+                                  VirtualizingStackPanel.IsVirtualizing="True"
+                                  SelectedItemChanged="PlayerTreeView_SelectedItemChanged"/>
+                    </TabItem>
+                    <TabItem Header="Search">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Players" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                            <TextBox x:Name="SearchBox" Grid.Row="1" TextChanged="SearchBox_TextChanged">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Text" Value=""/>
+                                        <Style.Triggers>
+                                            <Trigger Property="Text" Value="">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+
+                            <ListBox x:Name="PlayerListBox" Grid.Row="2" Margin="0,4,0,0"
+                                     DisplayMemberPath="DisplayName"
+                                     SelectionChanged="PlayerListBox_SelectionChanged"/>
+
+                            <TextBlock x:Name="PlayerCountText" Grid.Row="3" Margin="0,4,0,0" Foreground="Gray"/>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="4" Margin="2,0" VerticalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
+
+            <Border Grid.Column="2" BorderBrush="#ccc" BorderThickness="1" CornerRadius="4" Padding="8">
+                <Grid x:Name="DetailPanel" IsEnabled="False">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="First Name:"/>
+                    <TextBox x:Name="FirstNameBox" Grid.Row="0" Grid.Column="1" Margin="0,2,8,2"
+                             TextChanged="FirstNameBox_TextChanged"/>
+                    <Label Grid.Row="0" Grid.Column="2" Content="Last Name:"/>
+                    <TextBox x:Name="LastNameBox" Grid.Row="0" Grid.Column="3" Margin="0,2,0,2"
+                             TextChanged="LastNameBox_TextChanged"/>
+
+                    <Label Grid.Row="1" Grid.Column="0" Content="#:"/>
+                    <TextBox x:Name="JerseyBox" Grid.Row="1" Grid.Column="1" Margin="0,2,8,2"
+                             TextChanged="JerseyBox_TextChanged"/>
+                    <Label Grid.Row="1" Grid.Column="2" Content="Position:"/>
+                    <ComboBox x:Name="PositionCombo" Grid.Row="1" Grid.Column="3" Margin="0,2,0,2"
+                              IsEditable="True" SelectionChanged="PositionCombo_SelectionChanged"/>
+
+                    <Label Grid.Row="2" Grid.Column="0" Content="Year:"/>
+                    <ComboBox x:Name="ClassYearCombo" Grid.Row="2" Grid.Column="1" Margin="0,2,8,2"
+                              SelectionChanged="ClassYearCombo_SelectionChanged"/>
+                    <Label Grid.Row="2" Grid.Column="2" Content="Body Type:"/>
+                    <ComboBox x:Name="BodyTypeCombo" Grid.Row="2" Grid.Column="3" Margin="0,2,0,2"
+                              SelectionChanged="BodyTypeCombo_SelectionChanged"/>
+
+                    <Label Grid.Row="3" Grid.Column="0" Content="Height:"/>
+                    <TextBox x:Name="HeightBox" Grid.Row="3" Grid.Column="1" Margin="0,2,8,2"
+                             TextChanged="HeightBox_TextChanged"/>
+                    <Label Grid.Row="3" Grid.Column="2" Content="Weight:"/>
+                    <StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal" Margin="0,2,0,2">
+                        <TextBox x:Name="WeightBox" Width="60" TextChanged="WeightBox_TextChanged"/>
+                        <TextBlock Text="  (value + 160 = actual lbs)" VerticalAlignment="Center" Foreground="Gray" FontSize="11"/>
+                    </StackPanel>
+
+                    <Label Grid.Row="4" Grid.Column="0" Content="Face ID:"/>
+                    <TextBox x:Name="FaceIdBox" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Margin="0,2,0,2"
+                             TextChanged="FaceIdBox_TextChanged"/>
+
+                    <Label Grid.Row="5" Grid.Column="0" Content="Skin Tone:"/>
+                    <ComboBox x:Name="SkinToneCombo" Grid.Row="5" Grid.Column="1" Margin="0,2,8,2"
+                              SelectionChanged="SkinToneCombo_SelectionChanged"/>
+                    <Label Grid.Row="5" Grid.Column="2" Content="Hair Color:"/>
+                    <ComboBox x:Name="HairColorCombo" Grid.Row="5" Grid.Column="3" Margin="0,2,0,2"
+                              SelectionChanged="HairColorCombo_SelectionChanged"/>
+
+                    <Label Grid.Row="6" Grid.Column="0" Content="Eye Color:"/>
+                    <ComboBox x:Name="EyeColorCombo" Grid.Row="6" Grid.Column="1" Margin="0,2,8,2"
+                              SelectionChanged="EyeColorCombo_SelectionChanged"/>
+                    <Label Grid.Row="6" Grid.Column="2" Content="Full ID:"/>
+                    <TextBlock x:Name="PlayerIdText" Grid.Row="6" Grid.Column="3"
+                               VerticalAlignment="Center" Foreground="Gray" FontSize="11" Margin="4,0,0,0"/>
+
+                    <Label Grid.Row="7" Grid.Column="0" Content="Team:"/>
+                    <ComboBox x:Name="TeamCombo" Grid.Row="7" Grid.Column="1" Margin="0,2,8,2"
+                              IsEditable="True" SelectionChanged="TeamCombo_SelectionChanged"/>
+                    <Label Grid.Row="7" Grid.Column="2" Content="Conference:"/>
+                    <ComboBox x:Name="ConferenceCombo" Grid.Row="7" Grid.Column="3" Margin="0,2,0,2"
+                              IsEditable="True" SelectionChanged="ConferenceCombo_SelectionChanged"/>
+
+                    <Separator Grid.Row="8" Grid.ColumnSpan="4" Margin="0,8"/>
+
+                    <GroupBox Grid.Row="9" Grid.ColumnSpan="4" Header="Equipment" Margin="0,0,0,4">
+                        <DataGrid x:Name="EquipmentGrid" AutoGenerateColumns="False" CanUserAddRows="False"
+                                  HeadersVisibility="Column" MinHeight="80" MaxHeight="200"
+                                  RowEditEnding="EquipmentGrid_RowEditEnding">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Slot" Binding="{Binding Slot}" IsReadOnly="True" Width="120"/>
+                                <DataGridTemplateColumn Header="Value" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Value}" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding AvailableValues}"
+                                                      Text="{Binding Value, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                      IsEditable="True" IsTextSearchEnabled="True"
+                                                      StaysOpenOnEdit="True"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </GroupBox>
+
+                    <TextBlock x:Name="StatsText" Grid.Row="10" Grid.ColumnSpan="4"
+                               Foreground="#070" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+
+                    <Grid Grid.Row="11" Grid.ColumnSpan="4" Margin="0,8,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="AssignFaceButton" Content="Assign Random Face" Padding="8,4"
+                                Click="AssignFaceButton_Click" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="FaceCountText" Grid.Column="1" VerticalAlignment="Center" Foreground="Gray" FontSize="11"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <StatusBar Grid.Row="2" Margin="0,8,0,0">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" Text="Ready"/>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

@@ -1,0 +1,103 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0-windows10.0.19041</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<UseWPF>true</UseWPF>
+	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<Configurations>Debug;Release;FMT_PRO</Configurations>
+	<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+	<GenerateTargetFrameworkAttribute>true</GenerateTargetFrameworkAttribute>
+	<AssemblyVersion>26.0.0.0</AssemblyVersion>
+	<FileVersion>26.11.9680.0</FileVersion>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Launcher\**" />
+    <Compile Remove="RosterAnalyzer\**" />
+    <EmbeddedResource Remove="Launcher\**" />
+    <EmbeddedResource Remove="RosterAnalyzer\**" />
+    <None Remove="Launcher\**" />
+    <None Remove="RosterAnalyzer\**" />
+
+    <Compile Remove="m27converter\**" />
+    <EmbeddedResource Remove="m27converter\**" />
+    <None Remove="m27converter\**" />
+
+    <Compile Remove="Tools\**" />
+    <EmbeddedResource Remove="Tools\**" />
+    <None Remove="Tools\**" />
+    <Page Remove="Launcher\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ProDotNetZip" Version="1.20.0" />
+    <PackageReference Include="FMT.Compilers" Version="2026.10.0" />
+    <PackageReference Include="FMT.FileTools" Version="2026.10.0" />
+	<PackageReference Include="FMT.Core" Version="2026.10.1" />
+	<PackageReference Include="FMT.Db" Version="2026.1.0" />
+
+	<PackageReference Include="HashDepot" Version="3.2.0" />
+  </ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugSymbols>False</DebugSymbols>
+		<DebugType>None</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='FMT_PRO'">
+	  <DebugSymbols>False</DebugSymbols>
+	  <DebugType>None</DebugType>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Core\Madden26Plugin.csproj" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <None Update="FMTIcon24.png">
+      <PackagePath>\</PackagePath>
+      <Pack>True</Pack>
+    </None>
+    <None Update="Madden26Cover.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<PackagePath>\</PackagePath>
+		<Pack>True</Pack>
+    </None>
+    <None Update="Madden27Profile.json">
+      <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Pack>True</Pack>
+    </None>
+    <None Update="Madden26Profile.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		<PackagePath>\</PackagePath>
+		<Pack>True</Pack>
+    </None>
+  </ItemGroup>
+
+  <!-- Force WPF MarkupCompilePass1 to ensure .g.cs and .baml are generated -->
+  <PropertyGroup>
+    <EnableDefaultPageItems>true</EnableDefaultPageItems>
+  </PropertyGroup>
+
+  <!-- Embed WPF-generated BAML as resources so LoadComponent() can find them -->
+  <Target Name="EmbedBamlResources" BeforeTargets="AssignTargetPaths" Condition="'$(UseWPF)'=='true'">
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)Roster\Views\RosterEditorWindow.baml">
+        <LogicalName>$(RootNamespace).Roster.Views.RosterEditorWindow.baml</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)Roster\Views\GenerateRosterDialog.baml">
+        <LogicalName>$(RootNamespace).Roster.Views.GenerateRosterDialog.baml</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="$(IntermediateOutputPath)Roster\Views\BulkSwapDialog.baml">
+        <LogicalName>$(RootNamespace).Roster.Views.BulkSwapDialog.baml</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
+</Project>

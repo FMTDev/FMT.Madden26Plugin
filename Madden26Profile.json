@@ -8,7 +8,7 @@
   "CacheName": "Madden26pc",
   "SupportedLauncherFileTypes": null,
   "EditorScreen": "DefaultEditor",
-  "PluginNames": [ "Madden26" ],
+  "PluginNames": [ "Madden26", "MaddenWindows" ],
   "LegacyFileManager": "ChunkFileManager2022",
   "AssetLoader": "Madden26AssetLoader",
   "AssetCompiler": "Madden26AssetCompiler2025",

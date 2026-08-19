@@ -1,0 +1,143 @@
+<Window x:Class="Madden26Plugin.Roster.Views.GenerateRosterDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Madden26Plugin.Roster"
+        Title="Generate Roster from NCAA"
+        Width="1100" Height="650"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Year:" Margin="0,0,4,0"/>
+            <TextBox x:Name="YearBox" Grid.Column="1" Text="2025" Margin="0,0,8,0"/>
+            <Label Grid.Column="2" Content="Team:" Margin="0,0,4,0"/>
+            <ComboBox x:Name="TeamCombo" Grid.Column="3" IsEditable="True"
+                      TextBoxBase.TextChanged="TeamCombo_TextChanged"
+                      StaysOpenOnEdit="True"
+                      IsTextSearchEnabled="True"/>
+            <Button x:Name="FetchButton" Grid.Column="4" Content="Fetch" Padding="8,2" Click="FetchButton_Click" IsDefault="True" Margin="8,0,0,0"/>
+            <ProgressBar x:Name="FetchProgress" Grid.Column="5" Height="4" Margin="8,0,0,0" IsIndeterminate="True" Visibility="Collapsed"/>
+        </Grid>
+
+        <Expander x:Name="CustomUrlExpander" Grid.Row="1" Header="Or use custom URL" Margin="0,0,0,4" IsExpanded="False">
+            <TextBox x:Name="CustomUrlBox" Text="" Margin="20,4,4,4"/>
+        </Expander>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock x:Name="StatusLabel" Foreground="Gray" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            <Button x:Name="SaveScrapeButton" Content="Save JSON" Padding="8,2" Margin="200,0,0,0"
+                    Click="SaveScrapeButton_Click" IsEnabled="False"/>
+            <Button x:Name="LoadJsonButton" Content="Load JSON" Padding="8,2" Margin="8,0,0,0"
+                    Click="LoadJsonButton_Click"/>
+        </StackPanel>
+
+        <DataGrid x:Name="PlayerGrid" Grid.Row="4" Margin="0,8,0,0"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
+                  MinHeight="300" MaxHeight="500"
+                  EnableRowVirtualization="True"
+                  VirtualizingPanel.ScrollUnit="Pixel"
+                  HorizontalScrollBarVisibility="Auto">
+            <DataGrid.Resources>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Padding" Value="4,0"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                </Style>
+            </DataGrid.Resources>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="First Name" Binding="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
+                <DataGridTextColumn Header="Last Name" Binding="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
+                <DataGridTextColumn Header="#" Binding="{Binding Jersey, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                <DataGridTemplateColumn Header="Pos" Width="60">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailablePositions}"
+                                      Text="{Binding Position, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Year" Width="70">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailableClassYears}"
+                                      Text="{Binding ClassYear, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Ht" Binding="{Binding DisplayHeight}" Width="50" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Wt" Binding="{Binding WeightLbs, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                <DataGridTemplateColumn Header="Body Type" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailableBodyTypes}"
+                                      Text="{Binding BodyType, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Tone" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailableSkinTones}"
+                                      Text="{Binding SkinTone, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Hair" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailableHairColors}"
+                                      Text="{Binding HairColor, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Eyes" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailableEyeColors}"
+                                      Text="{Binding EyeColor, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="Face ID" Width="200">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding AvailableFaces}"
+                                      Text="{Binding FaceId, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                      IsEditable="True" IsTextSearchEnabled="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <TextBlock x:Name="TemplateCountText" VerticalAlignment="Center" Foreground="Gray" Margin="0,0,12,0"/>
+            <Button x:Name="RepickFacesButton" Content="Re-pick Faces" Padding="8,4" Click="RepickFacesButton_Click"
+                    IsEnabled="False" Margin="0,0,8,0"/>
+            <Button x:Name="ApplyButton" Content="Apply to Roster" Padding="12,6" Click="ApplyButton_Click"
+                    IsEnabled="False" Margin="0,0,8,0"/>
+            <Button x:Name="CancelButton" Content="Cancel" Padding="12,6" Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
