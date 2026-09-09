@@ -46,7 +46,7 @@ public class ComplexionPresetMapper
             try
             {
                 var reader = EbxReader.GetEbxReader(new MemoryStream(entry.ModifiedEntry.Data));
-                reader.InitialRead(reader.BaseStream, false);
+                reader.InitialRead(reader.BaseStream);
                 var asset = reader.ReadAsset();
 
                 var recipeName = ReadRecipeName(asset);

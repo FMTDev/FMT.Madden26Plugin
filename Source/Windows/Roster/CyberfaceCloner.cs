@@ -31,7 +31,7 @@ public class CyberfaceCloner
         try
         {
             var reader = EbxReader.GetEbxReader(new MemoryStream(sourceEntry.ModifiedEntry.Data));
-            reader.InitialRead(reader.BaseStream, false);
+            reader.InitialRead(reader.BaseStream);
             var sourceAsset = reader.ReadAsset();
 
             var newAsset = new EbxAsset();
@@ -107,7 +107,7 @@ public class CyberfaceCloner
         try
         {
             var reader = EbxReader.GetEbxReader(new MemoryStream(entry.ModifiedEntry.Data));
-            reader.InitialRead(reader.BaseStream, false);
+            reader.InitialRead(reader.BaseStream);
             var asset = reader.ReadAsset();
 
             var rootColor = ComplexionPresetMapper.FindField(asset.RootObject, "RootColor");
@@ -137,8 +137,9 @@ public class CyberfaceCloner
             Location = sourceEntry.Location,
             Type = sourceEntry.Type,
             Id = Guid.NewGuid(),
-            Bundles = sourceEntry.Bundles.ToList(),
         };
+        foreach (var bundle in sourceEntry.Bundles)
+            newEntry.Bundles.Add(bundle);
         service.AddEbx(newEntry);
     }
 
@@ -151,7 +152,7 @@ public class CyberfaceCloner
         if (sourceBrt == null) return;
 
         var reader = EbxReader.GetEbxReader(new MemoryStream(sourceBrt.ModifiedEntry.Data));
-        reader.InitialRead(reader.BaseStream, false);
+        reader.InitialRead(reader.BaseStream);
         var brtAsset = reader.ReadAsset();
 
         var newBrt = new EbxAsset();
@@ -172,8 +173,9 @@ public class CyberfaceCloner
             Location = sourceBrt.Location,
             Type = sourceBrt.Type,
             Id = Guid.NewGuid(),
-            Bundles = sourceBrt.Bundles.ToList(),
         };
+        foreach (var bundle in sourceBrt.Bundles)
+            newEntry.Bundles.Add(bundle);
         service.AddEbx(newEntry);
     }
 }
