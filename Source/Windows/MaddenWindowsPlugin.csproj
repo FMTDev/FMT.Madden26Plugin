@@ -35,16 +35,22 @@
     <Page Remove="Launcher\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="ProDotNetZip" Version="1.20.0" />
-    <PackageReference Include="FMT.Compilers" Version="2026.10.0" />
-    <PackageReference Include="FMT.FileTools" Version="2026.10.0" />
-	<PackageReference Include="FMT.Core" Version="2026.10.1" />
-	<PackageReference Include="FMT.Db" Version="2026.1.0" />
+	<ItemGroup>
+		<PackageReference Include="BCnEncoder.Net" Version="2.3.0">
+			<PrivateAssets></PrivateAssets>
+			<GeneratePathProperty>True</GeneratePathProperty>
+		</PackageReference>
+		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+		<PackageReference Include="FMT.PluginInterfaces" Version="2026.14.0" />
+		<PackageReference Include="ProDotNetZip" Version="1.20.0" />
+		<PackageReference Include="FMT.Compilers" Version="2026.10.0" />
+		<PackageReference Include="FMT.FileTools" Version="2026.11.0" />
+		<PackageReference Include="FMT.Core" Version="2026.13.1" />
+		<PackageReference Include="FMT.Db" Version="2026.1.0" />
 
-	<PackageReference Include="HashDepot" Version="3.2.0" />
-  </ItemGroup>
-
+		<PackageReference Include="HashDepot" Version="3.2.0" />
+	</ItemGroup>
+	
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
 		<DebugSymbols>False</DebugSymbols>
 		<DebugType>None</DebugType>
