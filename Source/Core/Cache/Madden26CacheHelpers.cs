@@ -8,11 +8,16 @@ namespace Madden26Plugin.Cache
 {
     internal class Madden26CacheHelpers
     {
-        public short Version { get; set; } = 1;
+        public short Version { get; set; } = 3;
 
         public string GetCachePath()
         {
             return Path.Combine(AppContext.BaseDirectory, "_GameCaches", $"{ProfileManager.Instance.Name}.cache");
+        }
+
+        public string GetCacheBodyPath()
+        {
+            return Path.Combine(AppContext.BaseDirectory, "_GameCaches", $"{ProfileManager.Instance.Name}_body.cache");
         }
 
         public ulong GetSystemIteration()
@@ -46,11 +51,19 @@ namespace Madden26Plugin.Cache
             if (!Directory.Exists(fss.BasePath))
                 return 0;
 
+            var installLogText = Path.Combine(fss.BasePath, "__Installer", $"InstallLog.txt");
+            if (File.Exists(installLogText))
+            {
+                return File.GetLastWriteTimeUtc(installLogText).ToFileTimeUtc();
+            }
+
             var exePath = Path.Combine(fss.BasePath, $"{ProfileManager.Instance.ExecutableName}.exe");
             if (File.Exists(exePath))
             {
                 return File.GetLastWriteTimeUtc(exePath).ToFileTimeUtc();
             }
+
+            
             return 0;
         }
     }

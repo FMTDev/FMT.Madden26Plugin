@@ -15,6 +15,8 @@ namespace Madden26Plugin.Cache
     public class Madden26CacheReader : ICacheReader
     {
         protected ILogger Logger { get; set; }
+        private EbxAssetEntryService ebxAssetEntryService { get; } = new EbxAssetEntryService();
+        private ResourceAssetEntryService resourceAssetEntryService { get; } = new ResourceAssetEntryService();
         private ChunkAssetEntryService chunkAssetEntryService { get; } = new ChunkAssetEntryService();
 
         // NOT NEEDED
@@ -47,9 +49,8 @@ namespace Madden26Plugin.Cache
             if (!File.Exists(cacheHelpers.GetCachePath()))
                 return false;
 
-            // If we already have data, no need to read again
-            //if (assetManagementService.EnumerateEbx().Any())
-            //    return true;
+            if (!File.Exists(cacheHelpers.GetCacheBodyPath()))
+                return false;
 
             using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
             {
@@ -67,6 +68,29 @@ namespace Madden26Plugin.Cache
                 var cacheTime = nativeReader.ReadLong();
                 if (exeTime != cacheTime)
                     return false; // Patching required, so ignore cache
+            }
+
+            using var fs = new FileStream(cacheHelpers.GetCacheBodyPath(), FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var msBody = new MemoryStream();
+            try
+            {
+                using var gZipStream = new System.IO.Compression.GZipStream(fs, System.IO.Compression.CompressionMode.Decompress);
+                gZipStream.CopyTo(msBody);
+            }
+            catch (System.IO.InvalidDataException ex)
+            {
+                Logger?.Log($"Cache body decompression failed: {ex.Message}");
+                return false;
+            }
+            catch (System.IO.EndOfStreamException ex)
+            {
+                Logger?.Log($"Cache body truncated: {ex.Message}");
+                return false;
+            }
+
+            msBody.Position = 0;
+            using (NativeReader nativeReader = new NativeReader(msBody))
+            {
 
                 logger.Log("Cache: Reading bundles");
 
@@ -154,125 +178,23 @@ namespace Madden26Plugin.Cache
                     if (assetManagementService != null)
                         assetManagementService.AddChunk(asset as ChunkAssetEntry);
                 }
-
-                //// ------------------------------------------------------------------------
-                //// Chunks in Bundles
-                //logger.Log("Cache: Reading Chunks in Bundles");
-                //count = nativeReader.ReadInt();
-                //for (int chunkIndex = 0; chunkIndex < count; chunkIndex++)
-                //{
-                //    if (chunkIndex % 100 == 0)
-                //    {
-                //        var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
-                //        logger.LogProgress(pct);
-                //        logger.Log($"Cache: Reading Chunks [{pct}%]");
-                //    }
-                //    var chunkAssetEntry = ReadChunkAssetEntry(nativeReader);
-                //    chunkAssetEntry.IsTocChunk = true;
-
-                //    if (assetManagementService != null)
-                //        assetManagementService.AddChunk(chunkAssetEntry as ChunkAssetEntry);
-                //}
             }
             return true;
         }
 
         public virtual IEbxAssetEntry ReadEbxAssetEntry(NativeReader nativeReader)
         {
-            EbxAssetEntry ebxAssetEntry = new();
-            ebxAssetEntry.Name = nativeReader.ReadLengthPrefixedString();
-            ebxAssetEntry.Sha1 = nativeReader.ReadSha1();
-            ebxAssetEntry.Size = nativeReader.ReadLong();
-            ebxAssetEntry.OriginalSize = nativeReader.ReadLong();
-            ebxAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
-            ebxAssetEntry.Type = nativeReader.ReadLengthPrefixedString();
-            ebxAssetEntry.Id = nativeReader.ReadGuid();
-            if (nativeReader.ReadBoolean())
-            {
-                ebxAssetEntry.ExtraData = new AssetExtraData();
-                ebxAssetEntry.ExtraData.DataOffset = nativeReader.ReadUInt();
-                ebxAssetEntry.ExtraData.Catalog = nativeReader.ReadUShort();
-                ebxAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
-                ebxAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
-            }
-
-            int bundleCount = nativeReader.ReadInt();
-            for (int bundleIndex = 0; bundleIndex < bundleCount; bundleIndex++)
-            {
-                ebxAssetEntry.Bundles.Add(nativeReader.ReadInt());
-            }
-
-            return ebxAssetEntry;
+            return ebxAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as EbxAssetEntry;
         }
 
         public virtual IResourceAssetEntry ReadResAssetEntry(NativeReader nativeReader)
         {
-            ResAssetEntry resAssetEntry = new();
-            resAssetEntry.Name = nativeReader.ReadLengthPrefixedString();
-            resAssetEntry.Sha1 = nativeReader.ReadSha1();
-            resAssetEntry.Size = nativeReader.ReadLong();
-            resAssetEntry.OriginalSize = nativeReader.ReadLong();
-            resAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
-            resAssetEntry.IsInline = nativeReader.ReadBoolean();
-            resAssetEntry.ResRid = nativeReader.ReadULong();
-            resAssetEntry.ResType = nativeReader.ReadUInt();
-            resAssetEntry.ResMeta = nativeReader.ReadBytes(nativeReader.ReadInt());
-            if (nativeReader.ReadBoolean())
-            {
-                resAssetEntry.ExtraData = new AssetExtraData();
-                resAssetEntry.ExtraData.DataOffset = nativeReader.ReadUInt();
-                resAssetEntry.ExtraData.Catalog = nativeReader.ReadUShort();
-                resAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
-                resAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
-            }
-
-            int bundleCount = nativeReader.ReadInt();
-            for (int bundleIndex = 0; bundleIndex < bundleCount; bundleIndex++)
-            {
-                resAssetEntry.Bundles.Add(nativeReader.ReadInt());
-            }
-
-            return resAssetEntry;
+            return resourceAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as ResAssetEntry;
         }
 
         public virtual IChunkAssetEntry ReadChunkAssetEntry(NativeReader nativeReader)
         {
-              var chunkAssetEntry = chunkAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as ChunkAssetEntry;
-
-//            ChunkAssetEntry chunkAssetEntry = new();
-//            chunkAssetEntry.Id = nativeReader.ReadGuid();
-//#if DEBUG
-//            if (chunkAssetEntry.Id.ToString() == "599d4603-a770-a4f9-1da4-5be37f9749ed")
-//            {
-
-//            }
-//#endif
-//            chunkAssetEntry.Sha1 = nativeReader.ReadSha1();
-//            chunkAssetEntry.Size = nativeReader.ReadLong();
-//            chunkAssetEntry.Location = (AssetDataLocation)nativeReader.ReadByte();
-//            chunkAssetEntry.IsInline = nativeReader.ReadBoolean();
-//            chunkAssetEntry.BundledSize = nativeReader.ReadUInt();
-//            chunkAssetEntry.RangeStart = nativeReader.ReadUInt();
-//            chunkAssetEntry.RangeEnd = nativeReader.ReadUInt();
-//            chunkAssetEntry.LogicalOffset = nativeReader.ReadUInt();
-//            chunkAssetEntry.LogicalSize = nativeReader.ReadUInt();
-//            chunkAssetEntry.H32 = nativeReader.ReadInt();
-//            chunkAssetEntry.FirstMip = nativeReader.ReadInt();
-//            chunkAssetEntry.IsTocChunk = nativeReader.ReadBoolean();
-//            chunkAssetEntry.ExtraData = new AssetExtraData();
-//            chunkAssetEntry.ExtraData.DataOffset = nativeReader.ReadUInt();
-//            chunkAssetEntry.ExtraData.Catalog = nativeReader.ReadUShort();
-//            chunkAssetEntry.ExtraData.Cas = nativeReader.ReadUShort();
-//            chunkAssetEntry.ExtraData.IsPatch = nativeReader.ReadBoolean();
-//            chunkAssetEntry.Location = AssetDataLocation.CasNonIndexed;
-
-//            int bundleCount = nativeReader.ReadUInt16();
-//            for (int i = 0; i < bundleCount; i++)
-//            {
-//                chunkAssetEntry.Bundles.Add(nativeReader.ReadInt());
-//            }
-
-            return chunkAssetEntry;
+            return chunkAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as ChunkAssetEntry;
         }
 
         public bool DoesCacheNeedRebuilding(ILogger logger)
@@ -342,5 +264,6 @@ namespace Madden26Plugin.Cache
             logger.Log("Madden26 Caching does not support this function. Returning no items.");
             return true;
         }
+
     }
 }

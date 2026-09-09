@@ -15,6 +15,8 @@ namespace Madden26Plugin.Cache
     {
         public ILogger Logger { get; private set; }
 
+        private EbxAssetEntryService ebxAssetEntryService { get; } = new EbxAssetEntryService();
+        private ResourceAssetEntryService resourceAssetEntryService { get; } = new ResourceAssetEntryService();
         private ChunkAssetEntryService chunkAssetEntryService { get; } = new ChunkAssetEntryService();
 
         public void Write(ILogger logger)
@@ -26,167 +28,97 @@ namespace Madden26Plugin.Cache
             if (File.Exists(cacheHelpers.GetCachePath()))
                 File.Delete(cacheHelpers.GetCachePath());
 
-            MemoryStream msCache = new();
+            using MemoryStream msCacheHeader = new();
 
-            using (NativeWriter nativeWriter = new(msCache, leaveOpen: true))
+            using (NativeWriter nwHeader = new(msCacheHeader, leaveOpen: true))
             {
-                nativeWriter.Write(cacheHelpers.Version);
+                nwHeader.Write(cacheHelpers.Version);
 
-                nativeWriter.WriteLengthPrefixedString(ProfileManager.Instance.Name);
+                nwHeader.WriteLengthPrefixedString(ProfileManager.Instance.Name);
 
-                nativeWriter.Write(cacheHelpers.GetSystemIteration());
+                nwHeader.Write(cacheHelpers.GetSystemIteration());
 
-                nativeWriter.Write(cacheHelpers.GetExeWriteTime());
+                nwHeader.Write(cacheHelpers.GetExeWriteTime());
+            }
+
+            using MemoryStream msCacheBody = new();
+
+            using (NativeWriter nwBody = new(msCacheBody, leaveOpen: true))
+            { 
 
                 var distinctBundles = assetManagementService.Bundles.DistinctBy(x => SingletonService.GetInstance<IBundleEntryService>().GetNameHashUIntForBundleEntry(x)).ToArray();
-                nativeWriter.Write(distinctBundles.Length);
+                nwBody.Write(distinctBundles.Length);
                 foreach (BundleEntry bundle in distinctBundles)
                 {
-                    nativeWriter.WriteUInt16((ushort)bundle.Name.Length, Endian.Little);
-                    nativeWriter.WriteBytes(Encoding.UTF8.GetBytes(bundle.Name));
-                    nativeWriter.Write(bundle.SuperBundleId);
+                    nwBody.WriteUInt16((ushort)bundle.Name.Length, Endian.Little);
+                    nwBody.WriteBytes(Encoding.UTF8.GetBytes(bundle.Name));
+                    nwBody.Write(bundle.SuperBundleId);
                 }
 
                 var ebx = assetManagementService.EnumerateEbx().ToList();
                 //var paths = assetManagementService.EnumerateEbx().ToList().Select(x => x.FullPath.Contains('/') ? x.FullPath.Substring(0, x.FullPath.LastIndexOf('/')) : x.FullPath).Distinct().ToList();
 
-                nativeWriter.Write(ebx.Count());
+                nwBody.Write(ebx.Count());
                 foreach (EbxAssetEntry ebxEntry in ebx)
                 {
-                    WriteEbxEntry(nativeWriter, ebxEntry);
+                    WriteEbxEntry(nwBody, ebxEntry);
                 }
 
                 var resources = assetManagementService.EnumerateRes().ToList();
-                nativeWriter.Write(resources.Count);
+                nwBody.Write(resources.Count);
                 foreach (ResAssetEntry resEntry in resources)
                 {
-                    WriteResEntry(nativeWriter, resEntry);
+                    WriteResEntry(nwBody, resEntry);
                 }
 
                 var chunks = assetManagementService.EnumerateChunks().ToList();
-                nativeWriter.Write(chunks.Count);
+                nwBody.Write(chunks.Count);
                 foreach (ChunkAssetEntry chunkEntry in chunks)
                 {
-                    WriteChunkEntry(nativeWriter, chunkEntry);
+                    WriteChunkEntry(nwBody, chunkEntry);
                 }
-
-                //nativeWriter.Write(assetManagementService.SuperBundleChunks.Count);
-                //foreach (ChunkAssetEntry chunkEntry in assetManagementService.SuperBundleChunks.Values)
-                //{
-
-                //    WriteChunkEntry(nativeWriter, chunkEntry);
-                //}
             }
 
 
-            msCache.Position = 0;
-            File.WriteAllBytes(cacheHelpers.GetCachePath(), msCache.ToArray());
-            Logger.Log("Wrote Madden26 cache to " + cacheHelpers.GetCachePath());
+            msCacheHeader.Position = 0;
+            msCacheBody.Position = 0;
 
-        }
+            if (File.Exists(cacheHelpers.GetCachePath()))
+                File.Delete(cacheHelpers.GetCachePath());
 
-        private static bool DoesExtraDataExist(IAssetEntry assetEntry)
-        {
-            return assetEntry.ExtraData != null
-                            && assetEntry.ExtraData.DataOffset > 0
-                            && assetEntry.ExtraData.Catalog.HasValue
-                            && assetEntry.ExtraData.Cas.HasValue;
+            using (FileStream fs = new(cacheHelpers.GetCachePath(), FileMode.CreateNew, FileAccess.Write))
+            {
+                msCacheHeader.CopyTo(fs);
+            }
+
+            if (File.Exists(cacheHelpers.GetCacheBodyPath()))
+                File.Delete(cacheHelpers.GetCacheBodyPath());
+
+            using (FileStream fs = new(cacheHelpers.GetCacheBodyPath(), FileMode.CreateNew, FileAccess.Write))
+            {
+                // Ensure the GZipStream is disposed so the gzip footer is written and the stream is not truncated.
+                using (var gZipStream = new System.IO.Compression.GZipStream(fs, System.IO.Compression.CompressionMode.Compress))
+                {
+                    msCacheBody.CopyTo(gZipStream);
+                }
+            }
+            Logger.Log($"Wrote {ProfileManager.Instance.Name} cache");
+
         }
 
         public virtual void WriteEbxEntry(NativeWriter nativeWriter, IEbxAssetEntry ebxEntry)
         {
-            nativeWriter.WriteLengthPrefixedString(ebxEntry.Name);
-            nativeWriter.Write(ebxEntry.Sha1);
-            nativeWriter.Write(ebxEntry.Size);
-            nativeWriter.Write(ebxEntry.OriginalSize);
-            nativeWriter.Write((byte)ebxEntry.Location);
-            nativeWriter.WriteLengthPrefixedString((ebxEntry.Type != null) ? ebxEntry.Type : "");
-            nativeWriter.Write(ebxEntry.Id);
-
-            nativeWriter.Write(DoesExtraDataExist(ebxEntry));
-            if (DoesExtraDataExist(ebxEntry))
-            {
-                nativeWriter.Write(ebxEntry.ExtraData.DataOffset);
-                nativeWriter.Write(ebxEntry.ExtraData.Catalog.Value);
-                nativeWriter.Write(ebxEntry.ExtraData.Cas.Value);
-                nativeWriter.Write(ebxEntry.ExtraData.IsPatch);
-            }
-
-            nativeWriter.Write(ebxEntry.Bundles.Count);
-            foreach (int bundle2 in ebxEntry.Bundles)
-            {
-                nativeWriter.Write(bundle2);
-            }
+           nativeWriter.WriteLengthPrefixedBytes(ebxAssetEntryService.WriteAssetEntryInfo(ebxEntry));
         }
 
         public virtual void WriteResEntry(NativeWriter nativeWriter, IResourceAssetEntry resEntry)
         {
-            nativeWriter.WriteLengthPrefixedString(resEntry.Name);
-            nativeWriter.Write(resEntry.Sha1);
-            nativeWriter.Write(resEntry.Size);
-            nativeWriter.Write(resEntry.OriginalSize);
-            nativeWriter.Write((byte)resEntry.Location);
-            nativeWriter.Write(resEntry.IsInline);
-            nativeWriter.Write(resEntry.ResRid);
-            nativeWriter.Write(resEntry.ResType);
-            nativeWriter.Write(resEntry.ResMeta.Length);
-            nativeWriter.Write(resEntry.ResMeta);
-            bool extraDataExists = DoesExtraDataExist(resEntry);
-            nativeWriter.Write(extraDataExists);
-            if (extraDataExists)
-            {
-                nativeWriter.Write(resEntry.ExtraData.DataOffset);
-                nativeWriter.Write(resEntry.ExtraData.Catalog.Value);
-                nativeWriter.Write(resEntry.ExtraData.Cas.Value);
-                nativeWriter.Write(resEntry.ExtraData.IsPatch);
-            }
-
-            nativeWriter.Write(resEntry.Bundles.Count);
-            foreach (int b in resEntry.Bundles)
-            {
-                nativeWriter.Write(b);
-            }
+            nativeWriter.WriteLengthPrefixedBytes(resourceAssetEntryService.WriteAssetEntryInfo(resEntry));
         }
-
-
 
         public void WriteChunkEntry(NativeWriter nativeWriter, IChunkAssetEntry chunkEntry)
         {
-#if DEBUG
-            if (chunkEntry.Id.ToString() == "599d4603-a770-a4f9-1da4-5be37f9749ed")
-            {
-
-            }
-#endif
-
-
-            BinaryWriter writer = new BinaryWriter(new MemoryStream());
-            var bytes = chunkAssetEntryService.WriteAssetEntryInfo(chunkEntry);
-            nativeWriter.WriteLengthPrefixedBytes(bytes);
-
-            //nativeWriter.Write(chunkEntry.Id);
-            //nativeWriter.Write(chunkEntry.Sha1);
-            //nativeWriter.Write(chunkEntry.Size);
-            //nativeWriter.Write((byte)chunkEntry.Location);
-            //nativeWriter.Write(chunkEntry.IsInline);
-            //nativeWriter.Write(chunkEntry.BundledSize);
-            //nativeWriter.Write(chunkEntry.RangeStart);
-            //nativeWriter.Write(chunkEntry.RangeEnd);
-            //nativeWriter.Write(chunkEntry.LogicalOffset);
-            //nativeWriter.Write(chunkEntry.LogicalSize);
-            //nativeWriter.Write(chunkEntry.H32);
-            //nativeWriter.Write(chunkEntry.FirstMip);
-            //nativeWriter.Write(chunkEntry.IsTocChunk);
-            //nativeWriter.Write(chunkEntry.ExtraData.DataOffset);
-            //nativeWriter.Write(chunkEntry.ExtraData.Catalog.Value);
-            //nativeWriter.Write(chunkEntry.ExtraData.Cas.Value);
-            //nativeWriter.Write(chunkEntry.ExtraData.IsPatch);
-
-            //nativeWriter.Write((ushort)chunkEntry.Bundles.Count);
-            //foreach (int bundleId in chunkEntry.Bundles)
-            //{
-            //    nativeWriter.Write(bundleId);
-            //}
+            nativeWriter.WriteLengthPrefixedBytes(chunkAssetEntryService.WriteAssetEntryInfo(chunkEntry));
         }
     }
 }
