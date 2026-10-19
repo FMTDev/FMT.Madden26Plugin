@@ -9,8 +9,8 @@ namespace Madden26Plugin.Textures
     {
         public byte[] ToBytes(ITexture texture)
         {
-            // Define new memory stream with a capacity of 132 bytes
-            MemoryStream memoryStream = new(132);
+            // Define new memory stream with a capacity of 184 bytes
+            MemoryStream memoryStream = new(184);
             using (var nw = new NativeWriter(memoryStream))
             {
                 nw.Write((uint)texture.MipOffsets[0]);
@@ -31,10 +31,25 @@ namespace Madden26Plugin.Textures
                     nw.Write((uint)texture.MipSizes[i]);
 
                 nw.Write((uint)texture.ChunkSize);
-                nw.Write(texture.UnknownBytes[1]);
-                //nw.Write((uint)texture.AssetNameHash);
+                // Write the AssetNameHash64 if it has a value, otherwise write the AssetNameHash and the second unknown byte
+                if (texture.AssetNameHash64.HasValue)
+                {
+                    nw.Write((ulong)texture.AssetNameHash64.Value);
+                }
+                else
+                {
+                    nw.Write(texture.UnknownBytes[1]);
+                }
                 nw.WriteNullTerminatedString(texture.TextureGroup);
-                nw.Write(texture.UnknownBytes[2]);
+
+                if (texture.AssetNameHash64.HasValue)
+                {
+                    nw.Write(texture.UnknownBytes[1]);
+                }
+                else
+                {
+                    nw.Write(texture.UnknownBytes[2]);
+                }
             }
 
             var arrayOfBytes = memoryStream.ToArray();
