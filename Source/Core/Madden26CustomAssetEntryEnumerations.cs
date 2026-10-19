@@ -12,6 +12,11 @@ namespace Madden26Plugin
     {
         private IAssetManagementService assetManagementService => SingletonService.GetInstance<IAssetManagementService>();
 
+        public IEnumerable<CustomAssetEntryEnumeration> GetCustomAssetEntriesEnumerationList()
+        {
+            yield break;
+        }
+
         public Dictionary<string, IEnumerable<IAssetEntry>> GetCustomAssetEntriesEnumerations()
         {
             var jerseys = assetManagementService
