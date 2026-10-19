@@ -13,22 +13,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
-    <None Remove="Launcher\dpapi.dll" />
-    <None Remove="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="..\..\CFB27Profile.json" Link="CFB27Profile.json" />
     <Content Include="..\..\Madden26Profile.json" Link="Madden26Profile.json" />
     <Content Include="..\..\Madden27Profile.json" Link="Madden27Profile.json" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Launcher\CFB27\EAAntiCheat.GameServiceLauncher.exe" />
-    <EmbeddedResource Include="Launcher\CryptBase.dll" />
-    <EmbeddedResource Include="Launcher\dpapi.dll" />
-    <EmbeddedResource Include="Launcher\EAAntiCheat.GameServiceLauncher.exe" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,14 +25,16 @@
   
   <ItemGroup>
     <PackageReference Include="BCnEncoder.Net" Version="2.3.0" />
-    <PackageReference Include="FMT.PluginInterfaces" Version="2026.14.0" />
+    <PackageReference Include="FMT.PluginInterfaces" Version="2026.15.0" />
+    <PackageReference Include="FMT.ProfileSystem" Version="2026.14.1" />
     <PackageReference Include="ProDotNetZip" Version="1.20.0" />
-    <PackageReference Include="FMT.Compilers" Version="2026.10.0" />
+    <PackageReference Include="FMT.Compilers" Version="2026.12.1" />
     <PackageReference Include="FMT.FileTools" Version="2026.11.0" />
-	<PackageReference Include="FMT.Core" Version="2026.13.1" />
-	<PackageReference Include="FMT.Db" Version="2026.1.0" />
+	<PackageReference Include="FMT.Core" Version="2026.14.3" />
+	<PackageReference Include="FMT.Db" Version="2026.2.0" />
+	  <PackageReference Include="FMT.Models.Assets" Version="2026.13.2" />
 
-	<PackageReference Include="HashDepot" Version="3.2.0" />
+	  <PackageReference Include="HashDepot" Version="3.2.0" />
   </ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">

@@ -638,9 +638,9 @@ namespace Madden26Plugin.Compiler
             // --------------------------------------------------------------------------------------------------------
             // Apply Anti-Cheat bypass
             // Deploy CryptBase.dll to the output folder
-            DeployEmbeddedResource("CryptBase.dll", Path.Combine(fss.BasePath, "CryptBase.dll"));
+            DeployEmbeddedResource("FMT.Core.FMTLauncher.CryptBase.dll", Path.Combine(fss.BasePath, "CryptBase.dll"));
             // Deploy dpapi.dll to the output folder
-            DeployEmbeddedResource("dpapi.dll", Path.Combine(fss.BasePath, "dpapi.dll"));
+            DeployEmbeddedResource("FMT.Core.FMTLauncher.dpapi.dll", Path.Combine(fss.BasePath, "dpapi.dll"));
 
             // Backup the original EAAntiCheat.GameServiceLauncher.exe if it exists and a backup does not already exist
             if (File.Exists(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe")) && !File.Exists(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe.backup")))
