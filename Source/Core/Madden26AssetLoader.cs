@@ -73,21 +73,22 @@ namespace Madden26Plugin
 
             foreach (var casBundle in casBundles)
             {
-                var task = Task.Run(() =>
+                //var task = Task.Run(() =>
+                //{
+                tocFiles[casBundle.Value.Index].DoLogging = false;
+                CASDataReader casDataLoader = new(tocFiles[casBundle.Value.Index]);
+                var filePath = SingletonService.GetInstance<IFileSystemService>().ResolvePath(casBundle.Key);
+                if (File.Exists(filePath))
                 {
-                    tocFiles[casBundle.Value.Index].DoLogging = false;
-                    CASDataReader casDataLoader = new(tocFiles[casBundle.Value.Index]);
-                    var filePath = SingletonService.GetInstance<IFileSystemService>().ResolvePath(casBundle.Key);
-                    if (File.Exists(filePath))
+                    using (var nr = new NativeReader(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
                     {
-                        using (var nr = new NativeReader(filePath))
-                        {
-                            casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
-                        }
+                        casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
+                        numCompletedBundles++; logUpdate();
                     }
-                }).ContinueWith((x) => { numCompletedBundles++; logUpdate(); });
+                }
+                //}).ContinueWith((x) => { numCompletedBundles++; logUpdate(); });
 
-                allTasks.Add(task);
+                //allTasks.Add(task);
             }
 
             Task.WaitAll(allTasks);
@@ -99,6 +100,8 @@ namespace Madden26Plugin
 
             tocFiles.Clear();
         }
+
+
 
         public IEnumerable<IAssetEntry> Load(IEnumerable<string> superBundles)
         {
