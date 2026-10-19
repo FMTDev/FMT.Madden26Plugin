@@ -11,12 +11,12 @@
   "PluginNames": [ "Madden26", "MaddenWindows" ],
   "LegacyFileManager": "ChunkFileManager2022",
   "AssetLoader": "Madden26AssetLoader",
-  "AssetCompiler": "Madden27AssetCompiler",
+  "AssetCompiler": "MaddenAssetCompilerCBA",
   // Custom .cache file Writer - Write these exclusively (example - Madden22CacheWriter)
   "CacheWriter": "Madden26CacheWriter",
   // Custom .cache file Reader - Write these exclusively (example - Madden22CacheReader)
   "CacheReader": "Madden26CacheReader",
-  "TextureImporter": "TextureImporter",
+  "TextureImporter": "Madden27TextureImporter",
   "SDKFilename": "Madden27SDK",
   "SDKAOBScan": null,
   "Tools": {
@@ -32,7 +32,7 @@
   "CanExportMeshes": true,
   "EBXReader": "EbxReaderRiff",
   "EBXWriter": "EbxWriterRiff",
-  "CanLaunchMods": false,
+  "CanLaunchMods": true,
   "MaxBufferSize": 65536,
   "Sources": [
     {

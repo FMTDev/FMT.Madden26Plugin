@@ -60,13 +60,41 @@ namespace Madden26Plugin.Compiler
             {
                 if (BaseBinarySb.GetMagic() == BaseBinarySb.Magic.Standard)
                 {
-                    // sha1's
-                    foreach (DbObject ebx in bundleObj.GetValue<DbObject>("ebx"))
-                        bundleWriter.Write(ebx.GetValue<byte[]>("sha1"));
-                    foreach (DbObject res in bundleObj.GetValue<DbObject>("res"))
-                        bundleWriter.Write(res.GetValue<byte[]>("sha1"));
-                    foreach (DbObject chunk in bundleObj.GetValue<DbObject>("chunks"))
-                        bundleWriter.Write(chunk.GetValue<byte[]>("sha1"));
+                    try
+                    {
+                        // sha1's
+                        foreach (DbObject ebx in bundleObj.GetValue<DbObject>("ebx"))
+                        {
+                            if (ebx.GetValueType("sha1") == typeof(Sha1))
+                            {
+                                var sha1 = ebx.GetValue<Sha1>("sha1").ToByteArray();
+                                ebx.SetValue("sha1", sha1);
+                            }
+                            bundleWriter.Write(ebx.GetValue<byte[]>("sha1"));
+                        }
+                        foreach (DbObject res in bundleObj.GetValue<DbObject>("res"))
+                        {
+                            if (res.GetValueType("sha1") == typeof(Sha1))
+                            {
+                                var sha1 = res.GetValue<Sha1>("sha1").ToByteArray();
+                                res.SetValue("sha1", sha1);
+                            }
+                            bundleWriter.Write(res.GetValue<byte[]>("sha1"));
+                        }
+                        foreach (DbObject chunk in bundleObj.GetValue<DbObject>("chunks"))
+                        {
+                            if (chunk.GetValueType("sha1") == typeof(Sha1))
+                            {
+                                var sha1 = chunk.GetValue<Sha1>("sha1").ToByteArray();
+                                chunk.SetValue("sha1", sha1);
+                            }
+                            bundleWriter.Write(chunk.GetValue<byte[]>("sha1"));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception("Sha1 writing has failed.", ex);
+                    }
                 }
 
                 // names
@@ -100,7 +128,7 @@ namespace Madden26Plugin.Compiler
 
                 // res
                 foreach (DbObject res in bundleObj.GetValue<DbObject>("res"))
-                    bundleWriter.Write(res.GetValue<int>("resType"), endian);
+                    bundleWriter.Write(res.GetValue<uint>("resType"), endian);
                 foreach (DbObject res in bundleObj.GetValue<DbObject>("res"))
                     bundleWriter.Write(res.GetValue<byte[]>("resMeta"));
                 foreach (DbObject res in bundleObj.GetValue<DbObject>("res"))
