@@ -65,7 +65,7 @@ namespace Madden26Plugin.TOC
             writer.Write(casBundle.FlagsOffset, Endian.Big);
             writer.Position = endOfCasBundleOffsetPosition;
 
-            casBundle.BaseBundle.ModifiedBundleInfo = new BundleReferenceTableItem.ModifiedBundleReferenceTableItem(baseBundleOffset);// BaseBundleInfo.ModifiedBundleInfoStruct(baseBundleOffset);
+            casBundle.BaseBundle.ModifiedBundleInfo = new ModifiedBundleReferenceTableItem(baseBundleOffset, casBundle.BundleSize);
         }
 
         public override void WriteCasIdentification(TOCFile tocFile, NativeWriter writer, CASBundleEntry entry)

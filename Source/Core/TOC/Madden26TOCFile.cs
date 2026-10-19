@@ -131,7 +131,7 @@ namespace Madden26Plugin.TOC
                 tocChunk.ExtraData.IsPatch = catcaspatch.IsInPatch;
                 tocChunk.ExtraData.DataOffset = offset;
                 tocChunk.Bundles.Add(ChunkDataBundleId);
-                //tocChunk.Bundles.Add(Fnv1a.HashStringUTF8("TocChunks"));
+                tocChunk.Bundles.Add(CreateSuperBundleId(NativeFileLocation, ChunkDataBundleId));
                 if (assetManagementService != null && ProcessData)
                     assetManagementService.AddChunk(tocChunk);
             }
@@ -213,16 +213,23 @@ namespace Madden26Plugin.TOC
                         catalogIndex = nativeReader.ReadInt(Endian.Big); // Catalog PersistedIndex Identifier
                         cas = Convert.ToByte(nativeReader.ReadShort(Endian.Big)); // Cas number
 
-                        if (!fss.CatalogsIndexed.TryGetValue(catalogIndex, out var catalogIndexedKVP))
+                        // Find the catalog index in the CatalogObjects list
+                        // If the catalog index is not found, skip this entry (Tests will likely not have any)
+                        if (!fss.CatalogsIndexed.Any())
                         {
-                            continue;
+                            catalog = 0;
                         }
-                        var catalogIndexInt = fss.CatalogObjects.ToList().FindIndex(x => x.PersistentIndex.HasValue && x.PersistentIndex.Value == catalogIndex);
-                        if (catalogIndexInt == -1)
+                        else
                         {
-                            continue;
+                            if (!fss.CatalogsIndexed.TryGetValue(catalogIndex, out var catalogIndexedKVP))
+                                continue;
+
+                            var catalogIndexInt = fss.CatalogObjects.ToList().FindIndex(x => x.PersistentIndex.HasValue && x.PersistentIndex.Value == catalogIndex);
+                            if (catalogIndexInt == -1)
+                                continue;
+
+                            catalog = (byte)catalogIndexInt;
                         }
-                        catalog = (byte)catalogIndexInt;// (byte)foundCatalog;
                     }
 
                     long locationOfOffset = nativeReader.Position;
