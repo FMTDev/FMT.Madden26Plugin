@@ -9,6 +9,10 @@ namespace Madden26Plugin
 {
     public class Madden26ModsCleanupFunctions : ICleanupFunction
     {
+        public static Dictionary<string, List<(int offset, byte[] data)>> VanillaData = new Dictionary<string, List<(int offset, byte[] data)>>();
+
+        public Task CleanupTask;
+
         public void CleanUp()
         {
             var fss = FMT.ServicesManagers.SingletonService.GetInstance<FMT.ServicesManagers.Interfaces.IFileSystemService>();
@@ -20,7 +24,7 @@ namespace Madden26Plugin
             if (File.Exists(Path.Combine(fss.BasePath, "dpapi.dll")))
                 File.Delete(Path.Combine(fss.BasePath, "dpapi.dll"));
 
-            Task.Run(async () =>
+            CleanupTask = Task.Run(async () =>
             {
                 int attempts = 90;
                 while ((Process.GetProcessesByName("FMT.FrostbiteGameLoader").Any() || Process.GetProcessesByName("EAAntiCheat.GameServiceLauncher").Any()) && attempts-- > 0)
@@ -33,7 +37,18 @@ namespace Madden26Plugin
                     File.Move(Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe.backup"), Path.Combine(fss.BasePath, "EAAntiCheat.GameServiceLauncher.exe"));
                 }
             });
-          
+
+
+            var exportedFMTJavelinPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FMT", "Javelin", "FMT.Javelin.dll");
+            try
+            {
+                if (Directory.Exists(Directory.GetParent(exportedFMTJavelinPath).FullName))
+                    Directory.Delete(Directory.GetParent(exportedFMTJavelinPath).FullName, true);
+            }
+            catch
+            {
+
+            }
         }
     }
 }

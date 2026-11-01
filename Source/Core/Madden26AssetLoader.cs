@@ -12,6 +12,10 @@ namespace Madden26Plugin
 
     public class Madden26AssetLoader : IAssetLoader
     {
+        static Madden26AssetLoader()
+        {
+            SingletonService.GetInstance<IFileSystemService>().TOCFileType = typeof(Madden26TOCFile);
+        }
         private struct CasBundlesWithTocIndex
         {
             public int Index { get; set; }
@@ -73,22 +77,35 @@ namespace Madden26Plugin
 
             foreach (var casBundle in casBundles)
             {
-                //var task = Task.Run(() =>
-                //{
                 tocFiles[casBundle.Value.Index].DoLogging = false;
                 CASDataReader casDataLoader = new(tocFiles[casBundle.Value.Index]);
                 var filePath = SingletonService.GetInstance<IFileSystemService>().ResolvePath(casBundle.Key);
-                if (File.Exists(filePath))
+                var fileInfo = new FileInfo(filePath);
+                if (fileInfo.Exists)
                 {
-                    using (var nr = new NativeReader(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
+                    // Check if the file size exceeds 1 GB (1024 * 1024 * 1024 bytes)
+                    if (fileInfo.Length > 1024 * 1024 * 1024)
                     {
-                        casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
-                        numCompletedBundles++; logUpdate();
+                        using (var nr = new NativeReader(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
+                        {
+                            casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
+                            numCompletedBundles++; logUpdate();
+                        }
+                    }
+                    else
+                    {
+                        var ms = new MemoryStream(File.ReadAllBytes(filePath));
+                        using (var nr = new NativeReader(ms))
+                        {
+                            casDataLoader.ReadFromReader(casBundle.Key, casBundle.Value.Bundles, null, nr);
+                            numCompletedBundles++; logUpdate();
+                        }
                     }
                 }
-                //}).ContinueWith((x) => { numCompletedBundles++; logUpdate(); });
-
-                //allTasks.Add(task);
+                else
+                {
+                    numCompletedBundles++; logUpdate();
+                }
             }
 
             Task.WaitAll(allTasks);

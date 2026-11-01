@@ -144,6 +144,13 @@ namespace Madden26Plugin.TOC
             if (remainingByteLength == 0)
                 return;
 
+            if (Bundles == null || Bundles.Length == 0)
+                return;
+
+
+            if (BundleEntries == null || BundleEntries.Count == 0)
+                return;
+
             if (assetManagementService == null)
                 return;
 
@@ -153,20 +160,14 @@ namespace Madden26Plugin.TOC
             var bundlesByOffset = Bundles.OrderBy(x => x.Offset).ToArray();
             _ = bundlesByOffset;
 
-            if (BundleEntries.Count == 0)
-            {
+            if (bundlesByOffset.Length == 0)
                 return;
-            }
+
+            if (CasBundles == null)
+                CasBundles = new CASBundle[bundlesByOffset.Length];
 
             for (int i = 0; i < bundlesByOffset.Length; i++)
             {
-#if DEBUG
-                var expectedPosition = (bundlesByOffset[i].Offset + 556);
-                if (nativeReader.Position != expectedPosition)
-                {
-
-                }
-#endif
                 nativeReader.Position = (bundlesByOffset[i].Offset + 556);
 
                 CASBundle bundle = new();
@@ -187,6 +188,8 @@ namespace Madden26Plugin.TOC
                 var actualFlagsOffset = startPosition + bundle.FlagsOffset;
                 nativeReader.Position = actualFlagsOffset;
                 bundle.Flags = nativeReader.ReadBytes(bundle.EntriesCount);
+                bundle.Entries = new List<CASBundleEntry>(bundle.EntriesCount);
+                bundle.TOCCas = new List<int>(bundle.EntriesCount);
 
                 var actualEntriesOffset = startPosition + bundle.EntriesOffset;
                 nativeReader.Position = actualEntriesOffset;
@@ -199,13 +202,6 @@ namespace Madden26Plugin.TOC
 
                 for (int entryIndex = 0; entryIndex < bundle.EntriesCount; entryIndex++)
                 {
-#if DEBUG
-                    if (bundle.Flags[entryIndex] == 132 && entryIndex != 0)
-                    {
-
-                    }
-#endif
-
                     bool hasCasIdentifier = bundle.Flags[entryIndex] == 128 || bundle.Flags[entryIndex] == 132;
                     if (hasCasIdentifier)
                     {
@@ -224,11 +220,13 @@ namespace Madden26Plugin.TOC
                             if (!fss.CatalogsIndexed.TryGetValue(catalogIndex, out var catalogIndexedKVP))
                                 continue;
 
-                            var catalogIndexInt = fss.CatalogObjects.ToList().FindIndex(x => x.PersistentIndex.HasValue && x.PersistentIndex.Value == catalogIndex);
-                            if (catalogIndexInt == -1)
-                                continue;
+                            //var catalogIndexInt = fss.CatalogObjects.ToList().FindIndex(x => x.PersistentIndex.HasValue && x.PersistentIndex.Value == catalogIndex);
+                            //if (catalogIndexInt == -1)
+                            //    continue;
 
-                            catalog = (byte)catalogIndexInt;
+                            //catalog = (byte)catalogIndexInt;
+
+                            catalog = (byte)catalogIndexedKVP.ListIndex;
                         }
                     }
 
