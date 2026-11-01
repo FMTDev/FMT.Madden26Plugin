@@ -116,8 +116,8 @@ public class CFB27RosterWriter
     private static byte[] IonicCompress(byte[] data, int level)
     {
         using var output = new MemoryStream();
-        using (var gzip = new Ionic.Zlib.GZipStream(output, Ionic.Zlib.CompressionMode.Compress,
-            (Ionic.Zlib.CompressionLevel)level))
+        using (var gzip = new System.IO.Compression.GZipStream(output, 
+            (System.IO.Compression.CompressionLevel)level))
             gzip.Write(data);
         return output.ToArray();
     }

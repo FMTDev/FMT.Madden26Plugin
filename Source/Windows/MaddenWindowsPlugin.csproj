@@ -40,15 +40,15 @@
 			<PrivateAssets></PrivateAssets>
 			<GeneratePathProperty>True</GeneratePathProperty>
 		</PackageReference>
-		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
-		<PackageReference Include="FMT.PluginInterfaces" Version="2026.15.0" />
-		<PackageReference Include="ProDotNetZip" Version="1.20.0" />
-		<PackageReference Include="FMT.Compilers" Version="2026.12.1" />
-		<PackageReference Include="FMT.FileTools" Version="2026.11.0" />
-		<PackageReference Include="FMT.Core" Version="2026.14.3" />
+		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.2" />
+		<PackageReference Include="FMT.PluginInterfaces" Version="2026.16.1" />
+		<PackageReference Include="FMT.Compilers" Version="2026.13.1" />
+		<PackageReference Include="FMT.FileTools" Version="2026.12.0" />
+		<PackageReference Include="FMT.Core" Version="2026.16.1" />
 		<PackageReference Include="FMT.Db" Version="2026.2.0" />
 
 		<PackageReference Include="HashDepot" Version="3.2.0" />
+
 	</ItemGroup>
 	
 	<PropertyGroup Condition="'$(Configuration)'=='Release'">
