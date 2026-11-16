@@ -4,6 +4,7 @@ using FMT.FileTools;
 using FMT.Hash;
 using FMT.Models.Assets.AssetEntry.Entries;
 using FMT.PluginInterfaces;
+using FMT.PluginInterfaces.Assets;
 using FMT.ServicesManagers;
 using FMT.ServicesManagers.Interfaces;
 using System.IO;
@@ -124,12 +125,7 @@ namespace Madden26Plugin.TOC
                 tocChunk.OriginalSize = (tocChunk.LogicalOffset & 0xFFFF) | size;
                 tocChunk.Size = size;
                 tocChunk.Location = AssetDataLocation.CasNonIndexed;
-                tocChunk.ExtraData = new AssetExtraData();
-                tocChunk.ExtraData.Unk = 0;
-                tocChunk.ExtraData.Catalog = (ushort)catcaspatch.Catalog;
-                tocChunk.ExtraData.Cas = catcaspatch.Cas;
-                tocChunk.ExtraData.IsPatch = catcaspatch.IsInPatch;
-                tocChunk.ExtraData.DataOffset = offset;
+                tocChunk.AssetEntryCatalogCasOffsetInfo = new AssetEntryCatalogCasOffset(offset, (ushort)catcaspatch.Catalog, catcaspatch.Cas, catcaspatch.IsInPatch);
                 tocChunk.Bundles.Add(ChunkDataBundleId);
                 tocChunk.Bundles.Add(CreateSuperBundleId(NativeFileLocation, ChunkDataBundleId));
                 if (assetManagementService != null && ProcessData)

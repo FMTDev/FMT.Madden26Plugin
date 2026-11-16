@@ -148,9 +148,9 @@ namespace Madden26Plugin.Cache
                 count = nativeReader.ReadInt();
                 for (int k = 0; k < count; k++)
                 {
-                    if (k % 100 == 0)
+                    var pct = (int)Math.Round(((double)k / count) * 100);
+                    if (pct % 10 == 0)
                     {
-                        var pct = (int)Math.Round(((double)k / count) * 100);
                         logger.LogProgress(pct);
                         logger.Log($"Cache: Reading Resources [{pct}%]");
                     }
@@ -166,9 +166,9 @@ namespace Madden26Plugin.Cache
                 count = nativeReader.ReadInt();
                 for (int chunkIndex = 0; chunkIndex < count; chunkIndex++)
                 {
-                    if (chunkIndex % 100 == 0)
+                    var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
+                    if (pct % 10 == 0)
                     {
-                        var pct = (int)Math.Round(((double)chunkIndex / count) * 100);
                         logger.LogProgress(pct);
                         logger.Log($"Cache: Reading Chunks [{pct}%]");
                     }
@@ -182,17 +182,17 @@ namespace Madden26Plugin.Cache
             return true;
         }
 
-        public virtual IEbxAssetEntry ReadEbxAssetEntry(NativeReader nativeReader)
+        public virtual IAssetEntry ReadEbxAssetEntry(NativeReader nativeReader)
         {
             return ebxAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as EbxAssetEntry;
         }
 
-        public virtual IResourceAssetEntry ReadResAssetEntry(NativeReader nativeReader)
+        public virtual IAssetEntry ReadResAssetEntry(NativeReader nativeReader)
         {
             return resourceAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as ResAssetEntry;
         }
 
-        public virtual IChunkAssetEntry ReadChunkAssetEntry(NativeReader nativeReader)
+        public virtual IAssetEntry ReadChunkAssetEntry(NativeReader nativeReader)
         {
             return chunkAssetEntryService.ReadAssetEntryInfo(nativeReader.ReadLengthPrefixedBytes()) as ChunkAssetEntry;
         }
@@ -230,39 +230,13 @@ namespace Madden26Plugin.Cache
             return false; // rebuild NOT required
         }
 
-        public bool ReadIntoLists(ILogger logger, out List<IEbxAssetEntry> ebxAssetEntries, out List<IResourceAssetEntry> resourceAssetEntries, out List<IChunkAssetEntry> chunkAssetEntries)
+        public bool ReadIntoLists(ILogger logger, out List<IAssetEntry> ebxAssetEntries, out List<IAssetEntry> resourceAssetEntries, out List<IAssetEntry> chunkAssetEntries)
         {
-            ebxAssetEntries = new List<IEbxAssetEntry>();
-            resourceAssetEntries = new List<IResourceAssetEntry>();
-            chunkAssetEntries = new List<IChunkAssetEntry>();
+            ebxAssetEntries = new List<IAssetEntry>();
+            resourceAssetEntries = new List<IAssetEntry>();
+            chunkAssetEntries = new List<IAssetEntry>();
 
-            var fss = SingletonService.GetInstance<IFileSystemService>();
-
-            if (!SingletonService.Instantiated<IAssetManagementService>())
-                return false;
-
-            var assetManagementService = SingletonService.GetInstance<IAssetManagementService>();
-            var cacheHelpers = new Madden26CacheHelpers();
-
-            // If no cache, nothing to read
-            if (!File.Exists(cacheHelpers.GetCachePath()))
-                return false;
-
-            using (NativeReader nativeReader = new NativeReader(new FileStream(cacheHelpers.GetCachePath(), FileMode.Open, FileAccess.Read)))
-            {
-                // get past header
-                _ = nativeReader.ReadUInt16();
-
-                _ = nativeReader.ReadLengthPrefixedString();
-
-                _ = nativeReader.ReadULong();
-                
-                _ = nativeReader.ReadLong();
-            }
-
-
-            logger.Log("Madden26 Caching does not support this function. Returning no items.");
-            return true;
+            return ebxAssetEntries.Any() || resourceAssetEntries.Any() || chunkAssetEntries.Any();
         }
 
     }

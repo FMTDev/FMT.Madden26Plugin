@@ -1,4 +1,5 @@
-﻿using FMT.Db;
+﻿using FMT.Core.Cache;
+using FMT.Db;
 using FMT.FileTools.Readers;
 using FMT.ProfileSystem;
 using FMT.ServicesManagers;
@@ -12,12 +13,16 @@ namespace Madden26Plugin.Cache
 
         public string GetCachePath()
         {
-            return Path.Combine(AppContext.BaseDirectory, "_GameCaches", $"{ProfileManager.Instance.Name}.cache");
+            var path = CacheManager.CachePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            return path;
         }
 
         public string GetCacheBodyPath()
         {
-            return Path.Combine(AppContext.BaseDirectory, "_GameCaches", $"{ProfileManager.Instance.Name}_body.cache");
+            var path = Path.Combine(AppContext.BaseDirectory, "_GameCaches", $"{ProfileManager.Instance.Name}_body.cache");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            return path;
         }
 
         public ulong GetSystemIteration()
