@@ -1,4 +1,6 @@
 ﻿using FMT.PluginInterfaces;
+using FMT.ServicesManagers;
+using FMT.ServicesManagers.Interfaces;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -15,7 +17,7 @@ namespace Madden26Plugin
 
         public void CleanUp()
         {
-            var fss = FMT.ServicesManagers.SingletonService.GetInstance<FMT.ServicesManagers.Interfaces.IFileSystemService>();
+            var fss = FMT.ServicesManagers.SingletonService.GetInstance<IFileSystemService>();
 
             // Cleanup the Injected DLLs
             if (File.Exists(Path.Combine(fss.BasePath, "CryptBase.dll")))
